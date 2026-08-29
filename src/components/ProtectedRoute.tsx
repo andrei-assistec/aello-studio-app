@@ -1,0 +1,48 @@
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { Loader2, ShieldAlert } from 'lucide-react';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  module?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, module }) => {
+  const { user, profile, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-brand-dark flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-brand-medium" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (module && (!profile || (profile.role !== 'admin' && !profile.modulos.includes(module)))) {
+    return (
+      <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full glass-card p-8 text-center border-t-4 border-t-red-500 shadow-2xl">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-brand-dark mb-3">Acesso Restrito</h2>
+          <p className="text-surface-500 mb-6">
+            Sua conta não possui permissão para acessar o módulo <strong className="text-brand-dark">{module.toUpperCase()}</strong>.
+            Entre em contato com o administrador do sistema para solicitar liberação.
+          </p>
+          <a href="/" className="btn-primary w-full justify-center">
+            Voltar ao Painel Geral
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+export default ProtectedRoute;
