@@ -32,6 +32,11 @@ dist-ssr
 .firebase
 *-adminsdk-*.json
 
+# Backups & Archives
+backups/
+*.zip
+*.tar.gz
+
 # Temporary Analysis, Client Spreadsheets & Scratch Data
 xlspdf/
 *.xlsx
