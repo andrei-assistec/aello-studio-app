@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Shield, 
   Bell, 
@@ -16,7 +16,7 @@ import {
   Users
 } from 'lucide-react';
 import { useCollection } from '../../hooks/useFirestore';
-import { doc, getDoc, setDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { logActivity } from '../../services/logger';
@@ -41,7 +41,45 @@ export const SettingsPage = () => {
   const { data: logs, loading: loadingLogs } = useCollection<LogEntry>('logs', 'created_at', 'desc');
 
   // Controle de Acesso
-  const { data: users, loading: loadingUsers, update: updateUser } = useCollection<UserProfile>('usuarios');
+  const { data: usuariosList, loading: loadingUsuarios } = useCollection<UserProfile>('usuarios');
+  const { data: funcionariosList, loading: loadingFuncionarios } = useCollection<{ id: string; nome: string; email: string; perfil?: string; funcao?: string; uid?: string; created_at?: number }>('funcionarios');
+  
+  const loadingUsers = loadingUsuarios || loadingFuncionarios;
+
+  const combinedUsers = useMemo(() => {
+    const map = new Map<string, UserProfile>();
+
+    usuariosList.forEach(u => {
+      const key = (u.email || u.id).toLowerCase();
+      map.set(key, { ...u });
+    });
+
+    funcionariosList.forEach(f => {
+      if (!f.email) return;
+      const key = f.email.toLowerCase();
+      if (!map.has(key)) {
+        const isAdm = f.perfil === 'admin' || f.funcao === 'administrador';
+        map.set(key, {
+          id: f.uid || f.id,
+          email: f.email,
+          nome: f.nome,
+          role: isAdm ? 'admin' : 'trainer',
+          modulos: isAdm 
+            ? ['prescricao', 'financeiro', 'agenda', 'mensalidades', 'vendas', 'estoque', 'compras', 'comissao', 'relatorios']
+            : ['prescricao', 'agenda'],
+          created_at: f.created_at || Date.now()
+        });
+      } else {
+        const existing = map.get(key)!;
+        if (f.perfil === 'admin' || f.funcao === 'administrador') {
+          existing.role = 'admin';
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [usuariosList, funcionariosList]);
+
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editRole, setEditRole] = useState<'admin' | 'trainer' | 'finance' | 'user'>('user');
   const [editModulos, setEditModulos] = useState<string[]>([]);
@@ -130,13 +168,26 @@ export const SettingsPage = () => {
     setIsSavingAccess(true);
     try {
       const finalModulos = editRole === 'admin' 
-        ? ['prescricao', 'financeiro', 'agenda', 'mensalidades']
+        ? ['prescricao', 'financeiro', 'agenda', 'mensalidades', 'vendas', 'estoque', 'compras', 'comissao', 'relatorios']
         : editModulos;
 
-      await updateUser(selectedUser.id, {
+      const userRef = doc(db, 'usuarios', selectedUser.id);
+      await setDoc(userRef, {
+        email: selectedUser.email,
+        nome: selectedUser.nome,
         role: editRole,
-        modulos: finalModulos
-      });
+        perfil: editRole === 'admin' ? 'admin' : 'instrutor',
+        modulos: finalModulos,
+        updated_at: Date.now()
+      }, { merge: true });
+
+      const funcMatch = funcionariosList.find(f => f.email?.toLowerCase() === selectedUser.email?.toLowerCase() || f.uid === selectedUser.id);
+      if (funcMatch) {
+        await updateDoc(doc(db, 'funcionarios', funcMatch.id), {
+          perfil: editRole === 'admin' ? 'admin' : 'instrutor',
+          updated_at: Date.now()
+        });
+      }
 
       await logActivity({
         action: 'UPDATE',
@@ -492,7 +543,7 @@ export const SettingsPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-surface-100">
-                      {users.map((u) => (
+                      {combinedUsers.map((u) => (
                         <tr key={u.id} className="hover:bg-surface-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex flex-col">
