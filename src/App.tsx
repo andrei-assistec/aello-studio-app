@@ -39,6 +39,12 @@ import { HistoricoRenovacoes } from './features/mensalidades/HistoricoRenovacoes
 import { FuncionariosList } from './features/funcionarios/FuncionariosList';
 import { FolhaComissoes } from './features/financeiro/FolhaComissoes';
 
+import { EstoqueList } from './features/estoque/EstoqueList';
+import { ComprasList } from './features/compras/ComprasList';
+import { VendasList } from './features/vendas/VendasList';
+import { RelatorioComissao } from './features/comissao/RelatorioComissao';
+import { RelatoriosEstoqueVendas } from './features/relatorios/RelatoriosEstoqueVendas';
+
 import { Loader2 } from 'lucide-react';
 
 function AppRoutes() {
@@ -156,6 +162,56 @@ function AppRoutes() {
                   </Routes>
                 </MensalidadesLayout>
               </ProtectedRoute>
+            } 
+          />
+
+          {/* Módulo Vendas (PDV Balcão) */}
+          <Route 
+            path="/vendas" 
+            element={
+              <AppLayout>
+                <VendasList />
+              </AppLayout>
+            } 
+          />
+
+          {/* Módulo Estoque */}
+          <Route 
+            path="/estoque" 
+            element={
+              <AppLayout>
+                <EstoqueList />
+              </AppLayout>
+            } 
+          />
+
+          {/* Módulo Compras */}
+          <Route 
+            path="/compras" 
+            element={
+              <AppLayout>
+                <ComprasList />
+              </AppLayout>
+            } 
+          />
+
+          {/* Relatório de Comissões */}
+          <Route 
+            path="/comissoes" 
+            element={
+              <AppLayout>
+                <RelatorioComissao />
+              </AppLayout>
+            } 
+          />
+
+          {/* Relatórios Estratégicos (Curva ABC / Giro) */}
+          <Route 
+            path="/relatorios/estoque-vendas" 
+            element={
+              <AppLayout>
+                <RelatoriosEstoqueVendas />
+              </AppLayout>
             } 
           />
 

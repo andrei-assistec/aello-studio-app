@@ -7,7 +7,9 @@ import {
   LogOut,
   ChevronRight,
   Grid,
-  Users
+  Users,
+  Award,
+  ShoppingBag
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { logActivity } from '../services/logger';
@@ -55,7 +57,8 @@ export const FinanceiroSidebar = () => {
         <SidebarItem to="/financeiro/despesas" icon={<TrendingDown className="w-5 h-5" />} label="Contas a Pagar" />
         <SidebarItem to="/financeiro/caixa" icon={<DollarSign className="w-5 h-5" />} label="Fluxo de Caixa" />
         <SidebarItem to="/financeiro/funcionarios" icon={<Users className="w-5 h-5" />} label="Colaboradores" />
-        <SidebarItem to="/financeiro/folha" icon={<Users className="w-5 h-5" />} label="Folha & Comissões" />
+        <SidebarItem to="/comissoes" icon={<Award className="w-5 h-5" />} label="Comissões Vendas" />
+        <SidebarItem to="/vendas" icon={<ShoppingBag className="w-5 h-5" />} label="PDV Vendas" />
       </nav>
 
       <div className="p-4 border-t border-surface-100 flex flex-col gap-2">
