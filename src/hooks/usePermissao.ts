@@ -4,6 +4,7 @@ import { useCollection } from './useFirestore';
 import type { Funcionario } from '../types/database';
 import { PERMISSOES_INSTRUTOR_PADRAO } from '../lib/acl/permissoes';
 import type { PerfilUsuario, MapaPermissoes } from '../lib/acl/permissoes';
+import { useUser } from '../contexts/UserContext';
 
 export interface UsePermissaoReturn {
   pode: (permissaoId: string) => boolean;
@@ -17,6 +18,7 @@ export interface UsePermissaoReturn {
 
 export function usePermissao(): UsePermissaoReturn {
   const { user } = useAuth();
+  const { profile } = useUser();
   const { data: funcionarios } = useCollection<Funcionario>('funcionarios');
 
   const userUid = user?.uid || null;
@@ -57,8 +59,41 @@ export function usePermissao(): UsePermissaoReturn {
     if (funcionarioAtual?.overrides_permissoes) {
       Object.assign(base, funcionarioAtual.overrides_permissoes);
     }
+
+    const modulos = profile?.modulos || (funcionarioAtual as any)?.modulos || [];
+    if (modulos.length > 0) {
+      if (modulos.includes('vendas')) {
+        base['vendas.ver'] = true;
+        base['vendas.criar'] = true;
+      }
+      if (modulos.includes('cadastros')) {
+        base['alunos.ver'] = true;
+        base['alunos.criar'] = true;
+        base['alunos.editar'] = true;
+      }
+      if (modulos.includes('agenda')) {
+        base['agenda.ver'] = true;
+        base['agenda.agendar'] = true;
+      }
+      if (modulos.includes('estoque')) {
+        base['estoque.ver'] = true;
+      }
+      if (modulos.includes('compras')) {
+        base['compras.ver'] = true;
+      }
+      if (modulos.includes('financeiro')) {
+        base['financeiro.ver'] = true;
+      }
+      if (modulos.includes('comissao')) {
+        base['comissao.ver'] = true;
+      }
+      if (modulos.includes('relatorios')) {
+        base['relatorios.ver'] = true;
+      }
+    }
+
     return base;
-  }, [ehAdmin, funcionarioAtual]);
+  }, [ehAdmin, funcionarioAtual, profile?.modulos]);
 
   const pode = (permissaoId: string): boolean => {
     if (ehAdmin) return true;

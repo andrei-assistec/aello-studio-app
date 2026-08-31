@@ -716,20 +716,26 @@ export const SettingsPage = () => {
                     Administradores possuem acesso automático e irrestrito a todos os módulos do sistema.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scrollbar pr-1">
                     {[
                       { id: 'prescricao', label: 'Prescrição de Treinos' },
-                      { id: 'financeiro', label: 'Gestão Financeira' },
                       { id: 'agenda', label: 'Agenda & Aulas' },
-                      { id: 'mensalidades', label: 'Controle de Mensalidades' }
+                      { id: 'cadastros', label: 'Cadastro de Alunos' },
+                      { id: 'vendas', label: 'Vendas (PDV Balcão)' },
+                      { id: 'financeiro', label: 'Gestão Financeira' },
+                      { id: 'mensalidades', label: 'Controle de Mensalidades' },
+                      { id: 'estoque', label: 'Estoque de Produtos' },
+                      { id: 'compras', label: 'Compras & NF-e' },
+                      { id: 'comissao', label: 'Comissões de Vendas' },
+                      { id: 'relatorios', label: 'Relatórios Estratégicos' }
                     ].map((m) => {
                       const isChecked = editModulos.includes(m.id);
                       return (
                         <label 
                           key={m.id}
-                          className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                             isChecked 
-                              ? 'bg-brand-medium/5 border-brand-medium text-brand-dark font-semibold'
+                              ? 'bg-brand-medium/5 border-brand-medium text-brand-dark font-semibold shadow-xs'
                               : 'bg-white border-surface-200 text-surface-600 hover:bg-surface-50'
                           }`}
                         >
@@ -743,9 +749,9 @@ export const SettingsPage = () => {
                                 setEditModulos(editModulos.filter(x => x !== m.id));
                               }
                             }}
-                            className="w-4.5 h-4.5 rounded border-surface-300 text-brand-medium focus:ring-brand-medium cursor-pointer"
+                            className="w-4 h-4 rounded border-surface-300 text-brand-medium focus:ring-brand-medium cursor-pointer"
                           />
-                          <span className="text-sm">{m.label}</span>
+                          <span className="text-xs">{m.label}</span>
                         </label>
                       );
                     })}
