@@ -12,7 +12,9 @@ service cloud.firestore {
         request.auth.token.perfil == 'admin' ||
         request.auth.token.email.matches('.*admin.*') ||
         request.auth.token.email.matches('.*adriana.*') ||
-        request.auth.token.email.matches('.*aello.*')
+        request.auth.token.email.matches('.*aello.*') ||
+        request.auth.token.email.matches('.*andreiplet.*') ||
+        request.auth.token.email.matches('.*andrei.*')
       );
     }
     
