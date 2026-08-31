@@ -31,16 +31,24 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, module
                       emailLower.includes('aello') ||
                       emailLower.includes('admin');
 
+  const isTrainer = profile?.role === 'trainer' || (profile as any)?.perfil === 'instrutor' || !isUserAdmin;
+
   const hasModuleAccess = (modName: string) => {
     if (isUserAdmin) return true;
+
+    // Instrutores sempre possuem acesso aos módulos operacionais do studio
+    if (isTrainer && (modName === 'prescricao' || modName === 'cadastros' || modName === 'agenda' || modName === 'vendas')) {
+      return true;
+    }
+
     if (!profile) return false;
     const userMods = profile.modulos || [];
 
-    if (modName === 'prescricao') {
+    if (modName === 'prescricao' || modName === 'cadastros') {
       return userMods.includes('prescricao') || userMods.includes('cadastros');
     }
-    if (modName === 'cadastros') {
-      return userMods.includes('cadastros') || userMods.includes('prescricao');
+    if (modName === 'agenda') {
+      return userMods.includes('agenda');
     }
     if (modName === 'vendas') {
       return userMods.includes('vendas') || userMods.includes('loja');

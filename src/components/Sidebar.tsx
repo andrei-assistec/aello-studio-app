@@ -150,14 +150,22 @@ export const Sidebar = ({
                       emailLower.includes('aello') ||
                       emailLower.includes('admin');
 
+  const isTrainer = profile?.role === 'trainer' || (profile as any)?.perfil === 'instrutor' || !isUserAdmin;
+
   const hasAccess = (moduleName: string) => {
     if (isUserAdmin) return true;
-    if (moduleName === 'vendas' || moduleName === 'loja') return pode('vendas.ver') || pode('estoque.ver');
-    if (moduleName === 'estoque') return pode('estoque.ver');
-    if (moduleName === 'compras') return pode('compras.ver');
-    if (moduleName === 'comissao') return pode('comissao.ver');
-    if (moduleName === 'cadastros') return pode('alunos.ver');
-    if (moduleName === 'relatorios') return pode('relatorios.ver');
+
+    // Instrutores sempre possuem visibilidade dos módulos operacionais
+    if (isTrainer && (moduleName === 'agenda' || moduleName === 'cadastros' || moduleName === 'prescricao' || moduleName === 'vendas' || moduleName === 'loja')) {
+      return true;
+    }
+
+    if (moduleName === 'estoque') return pode('estoque.ver') || profile?.modulos?.includes('estoque') || false;
+    if (moduleName === 'compras') return pode('compras.ver') || profile?.modulos?.includes('compras') || false;
+    if (moduleName === 'comissao') return pode('comissao.ver') || profile?.modulos?.includes('comissao') || false;
+    if (moduleName === 'relatorios') return pode('relatorios.ver') || profile?.modulos?.includes('relatorios') || false;
+    if (moduleName === 'financeiro') return pode('financeiro.ver') || profile?.modulos?.includes('financeiro') || false;
+
     return profile?.modulos?.includes(moduleName) || false;
   };
 
