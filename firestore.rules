@@ -23,9 +23,9 @@ service cloud.firestore {
     }
 
     match /alunos/{id} {
-      allow read:   if ehAdmin() || (autenticado() && resource.data.personal_ids != null && meuUid() in resource.data.personal_ids);
+      allow read:   if autenticado();
       allow create: if autenticado();
-      allow update: if ehAdmin() || (autenticado() && resource.data.personal_ids != null && meuUid() in resource.data.personal_ids);
+      allow update: if autenticado();
       allow delete: if ehAdmin();
     }
 
@@ -69,9 +69,12 @@ service cloud.firestore {
     match /contadores/{id}       { allow read, write: if autenticado(); }
     match /clientes/{id}         { allow read, write: if autenticado(); }
 
-    match /agenda_aulas/{id} {
-      allow read, write: if ehAdmin() || (autenticado() && resource.data.personal_id == meuUid());
-    }
+    match /agenda_aulas/{id}       { allow read, write: if autenticado(); }
+    match /agendamentos_fixos/{id} { allow read, write: if autenticado(); }
+    match /mesociclos/{id}         { allow read, write: if autenticado(); }
+    match /avaliacoes_fisicas/{id} { allow read, write: if autenticado(); }
+    match /exercicios/{id}         { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /equipamentos/{id}       { allow read: if autenticado(); allow write: if ehAdmin(); }
 
     match /{document=**} {
       allow read, write: if ehAdmin();
