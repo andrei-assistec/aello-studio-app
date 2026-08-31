@@ -11,11 +11,7 @@ import {
   BarChart3,
   X,
   FolderPlus,
-  ShoppingBag,
-  Package,
-  Upload,
-  Award,
-  TrendingUp
+  ShoppingBag
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { logActivity } from '../services/logger';
@@ -103,12 +99,21 @@ export const Sidebar = ({
 
   const isMensalidadesActive = path.startsWith('/mensalidades') && !path.startsWith('/mensalidades/planos');
 
+  const isLojaActive = path.startsWith('/vendas') || 
+    path.startsWith('/estoque') || 
+    path.startsWith('/compras') || 
+    path.startsWith('/comissoes');
+
+  const isRelatoriosActive = path.startsWith('/relatorios');
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     agenda: path.startsWith('/agenda'),
     cadastros: isCadastrosActive,
     financeiro: isFinanceiroActive,
     mensalidades: isMensalidadesActive,
-    prescricao: isPrescricaoActive
+    prescricao: isPrescricaoActive,
+    loja: isLojaActive,
+    relatorios: isRelatoriosActive
   });
 
   const toggleGroup = (key: string) => {
@@ -126,6 +131,10 @@ export const Sidebar = ({
       setExpanded(prev => ({ ...prev, mensalidades: true }));
     } else if (isPrescricaoActive) {
       setExpanded(prev => ({ ...prev, prescricao: true }));
+    } else if (isLojaActive) {
+      setExpanded(prev => ({ ...prev, loja: true }));
+    } else if (isRelatoriosActive) {
+      setExpanded(prev => ({ ...prev, relatorios: true }));
     }
   }, [path]);
 
@@ -279,135 +288,41 @@ export const Sidebar = ({
           </div>
         )}
 
-        {/* 6. Módulos de Loja, Vendas e Compras */}
-        <div className="pt-2 pb-1 px-3 text-[10px] uppercase font-bold text-surface-400 tracking-wider">
-          Loja & Estoque
+        {/* 6. Loja & Estoque (Grupo Expansível) */}
+        <div className="space-y-0.5">
+          <SidebarGroupHeader 
+            label="Loja & Estoque"
+            icon={<ShoppingBag className="w-4 h-4" />}
+            isExpanded={expanded.loja}
+            isActive={isLojaActive}
+            onClick={() => toggleGroup('loja')}
+          />
+          {expanded.loja && (
+            <div className="pl-1 space-y-0.5 animate-fade-in">
+              <SidebarSubItem to="/vendas" label="Vendas (PDV Balcão)" onClick={handleLinkClick} />
+              <SidebarSubItem to="/estoque" label="Estoque de Produtos" onClick={handleLinkClick} />
+              <SidebarSubItem to="/compras" label="Compras & NF-e" onClick={handleLinkClick} />
+              <SidebarSubItem to="/comissoes" label="Comissões sobre Vendas" onClick={handleLinkClick} />
+            </div>
+          )}
         </div>
 
-        <NavLink
-          to="/vendas"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-emerald-600" : "text-surface-400 group-hover:text-brand-dark")}>
-                <ShoppingBag className="w-4 h-4" />
-              </div>
-              <span>Vendas (PDV Balcão)</span>
+        {/* 7. Relatórios & Análises (Grupo Expansível) */}
+        <div className="space-y-0.5">
+          <SidebarGroupHeader 
+            label="Relatórios & Análises"
+            icon={<BarChart3 className="w-4 h-4" />}
+            isExpanded={expanded.relatorios}
+            isActive={isRelatoriosActive}
+            onClick={() => toggleGroup('relatorios')}
+          />
+          {expanded.relatorios && (
+            <div className="pl-1 space-y-0.5 animate-fade-in">
+              <SidebarSubItem to="/relatorios/estoque-vendas" label="Curva ABC & Giro" onClick={handleLinkClick} />
+              <SidebarSubItem to="/relatorios" end label="Relatórios Gerais" onClick={handleLinkClick} />
             </div>
           )}
-        </NavLink>
-
-        <NavLink
-          to="/estoque"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-emerald-600" : "text-surface-400 group-hover:text-brand-dark")}>
-                <Package className="w-4 h-4" />
-              </div>
-              <span>Estoque de Produtos</span>
-            </div>
-          )}
-        </NavLink>
-
-        <NavLink
-          to="/compras"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-indigo-600" : "text-surface-400 group-hover:text-brand-dark")}>
-                <Upload className="w-4 h-4" />
-              </div>
-              <span>Compras & NF-e</span>
-            </div>
-          )}
-        </NavLink>
-
-        <NavLink
-          to="/comissoes"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-amber-600" : "text-surface-400 group-hover:text-brand-dark")}>
-                <Award className="w-4 h-4" />
-              </div>
-              <span>Comissões sobre Vendas</span>
-            </div>
-          )}
-        </NavLink>
-
-        {/* 7. Relatórios & Análises */}
-        <div className="pt-2 pb-1 px-3 text-[10px] uppercase font-bold text-surface-400 tracking-wider">
-          Relatórios
         </div>
-
-        <NavLink
-          to="/relatorios/estoque-vendas"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-indigo-600" : "text-surface-400 group-hover:text-brand-dark")}>
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <span>Curva ABC & Giro</span>
-            </div>
-          )}
-        </NavLink>
-
-        <NavLink
-          to="/relatorios"
-          onClick={handleLinkClick}
-          className={({ isActive }) => clsx(
-            "flex items-center px-3 py-2 rounded-lg transition-all font-semibold text-xs cursor-pointer group",
-            isActive 
-              ? "bg-brand-dark/5 text-brand-dark font-bold border-l-3 border-brand-medium pl-2.5" 
-              : "text-surface-600 hover:bg-surface-100 hover:text-brand-dark"
-          )}
-        >
-          {({ isActive }) => (
-            <div className="flex items-center gap-2.5 flex-1">
-              <div className={clsx(isActive ? "text-brand-medium" : "text-surface-400 group-hover:text-brand-dark")}>
-                <BarChart3 className="w-4 h-4" />
-              </div>
-              <span>Relatórios Gerais</span>
-            </div>
-          )}
-        </NavLink>
       </nav>
 
       {/* Controles do Rodapé */}
