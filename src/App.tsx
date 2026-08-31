@@ -169,9 +169,11 @@ function AppRoutes() {
           <Route 
             path="/vendas" 
             element={
-              <AppLayout>
-                <VendasList />
-              </AppLayout>
+              <ProtectedRoute module="vendas">
+                <AppLayout>
+                  <VendasList />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 
@@ -179,9 +181,11 @@ function AppRoutes() {
           <Route 
             path="/estoque" 
             element={
-              <AppLayout>
-                <EstoqueList />
-              </AppLayout>
+              <ProtectedRoute module="estoque">
+                <AppLayout>
+                  <EstoqueList />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 
@@ -189,9 +193,11 @@ function AppRoutes() {
           <Route 
             path="/compras" 
             element={
-              <AppLayout>
-                <ComprasList />
-              </AppLayout>
+              <ProtectedRoute module="compras">
+                <AppLayout>
+                  <ComprasList />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 
@@ -199,9 +205,11 @@ function AppRoutes() {
           <Route 
             path="/comissoes" 
             element={
-              <AppLayout>
-                <RelatorioComissao />
-              </AppLayout>
+              <ProtectedRoute module="comissao">
+                <AppLayout>
+                  <RelatorioComissao />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 
@@ -209,9 +217,11 @@ function AppRoutes() {
           <Route 
             path="/relatorios/estoque-vendas" 
             element={
-              <AppLayout>
-                <RelatoriosEstoqueVendas />
-              </AppLayout>
+              <ProtectedRoute module="relatorios">
+                <AppLayout>
+                  <RelatoriosEstoqueVendas />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 
@@ -219,9 +229,11 @@ function AppRoutes() {
           <Route 
             path="/relatorios" 
             element={
-              <AppLayout>
-                <RelatoriosPage />
-              </AppLayout>
+              <ProtectedRoute module="relatorios">
+                <AppLayout>
+                  <RelatoriosPage />
+                </AppLayout>
+              </ProtectedRoute>
             } 
           />
 

@@ -31,7 +31,37 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, module
                       emailLower.includes('aello') ||
                       emailLower.includes('admin');
 
-  if (module && (!profile || (!isUserAdmin && !profile.modulos?.includes(module)))) {
+  const hasModuleAccess = (modName: string) => {
+    if (isUserAdmin) return true;
+    if (!profile) return false;
+    const userMods = profile.modulos || [];
+
+    if (modName === 'prescricao') {
+      return userMods.includes('prescricao') || userMods.includes('cadastros');
+    }
+    if (modName === 'cadastros') {
+      return userMods.includes('cadastros') || userMods.includes('prescricao');
+    }
+    if (modName === 'vendas') {
+      return userMods.includes('vendas') || userMods.includes('loja');
+    }
+    if (modName === 'estoque') {
+      return userMods.includes('estoque') || userMods.includes('loja');
+    }
+    if (modName === 'compras') {
+      return userMods.includes('compras') || userMods.includes('loja');
+    }
+    if (modName === 'comissao') {
+      return userMods.includes('comissao') || userMods.includes('loja');
+    }
+    if (modName === 'relatorios') {
+      return userMods.includes('relatorios');
+    }
+
+    return userMods.includes(modName);
+  };
+
+  if (module && !hasModuleAccess(module)) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full glass-card p-8 text-center border-t-4 border-t-red-500 shadow-2xl">
