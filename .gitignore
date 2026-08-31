@@ -32,7 +32,8 @@ dist-ssr
 .firebase
 *-adminsdk-*.json
 
-# Backups & Archives
+# Local Emulator Seed Data & Backups
+seed/
 backups/
 *.zip
 *.tar.gz

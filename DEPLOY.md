@@ -24,6 +24,31 @@ Os seguintes itens contêm dependências locais ou segredos críticos e são est
 
 ---
 
+## 💾 Backup e Ambiente do Emulador Firestore
+
+### 1. Backup em Nuvem (Google Cloud Storage)
+Para exportar todo o banco de dados do Firestore em produção:
+```bash
+gcloud firestore export gs://aello-prescritor-backups/$(date +%Y%m%d) --project=aello-prescritor
+```
+*Bucket recomendado:* `gs://aello-prescritor-backups/` com regra de Lifecycle de expiração automatizada em **30 dias** e agendamento via Cloud Scheduler/Cron diário às 03:00.
+
+### 2. Emulador Local e Seed de Dados Anonimizados
+Para rodar os testes e desenvolvimento em ambiente isolado sem afetar a produção:
+```bash
+# 1. Iniciar o emulador do Firebase (Firestore + Auth)
+npx firebase emulators:start
+
+# 2. Em outro terminal, extrair cópia anonimizada dos dados da produção para ./seed/
+npm run seed:dump
+
+# 3. Carregar o seed anonimizado no emulador local (exige FIRESTORE_EMULATOR_HOST)
+$env:FIRESTORE_EMULATOR_HOST="localhost:8080"
+npm run seed:load
+```
+
+---
+
 ## 🚀 Passo a Passo de Deploy
 
 A hospedagem do painel é feita no **Firebase Hosting**. Siga as etapas abaixo para publicar atualizações:
