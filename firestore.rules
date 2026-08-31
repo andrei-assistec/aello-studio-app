@@ -1,65 +1,78 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function autenticado() {
+      return request.auth != null;
+    }
+    
+    function ehAdmin() {
+      return request.auth != null && (
+        request.auth.token.perfil == 'admin' ||
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.email.matches('.*adriana.*') ||
+        request.auth.token.email.matches('.*aello.*')
+      );
+    }
+    
+    function meuUid() {
+      return request.auth.uid;
+    }
+
+    match /alunos/{id} {
+      allow read:   if ehAdmin() || (autenticado() && resource.data.personal_ids != null && meuUid() in resource.data.personal_ids);
+      allow create: if autenticado();
+      allow update: if ehAdmin() || (autenticado() && resource.data.personal_ids != null && meuUid() in resource.data.personal_ids);
+      allow delete: if ehAdmin();
+    }
+
+    match /receitas/{id} {
+      allow read:   if ehAdmin()
+                 || (autenticado() && resource.data.personal_id == meuUid())
+                 || (autenticado() && resource.data.vendedor_id == meuUid());
+      allow create: if autenticado();
+      allow update: if ehAdmin()
+                 || (autenticado() && resource.data.personal_id == meuUid())
+                 || (autenticado() && resource.data.vendedor_id == meuUid());
+      allow delete: if ehAdmin();
+    }
+
+    match /vendas/{id} {
+      allow read:   if ehAdmin() || (autenticado() && resource.data.vendedor_id == meuUid());
+      allow create: if autenticado();
+      allow update: if ehAdmin() || (autenticado() && resource.data.vendedor_id == meuUid());
+      allow delete: if false; // venda nunca se apaga
+    }
+
+    match /produtos/{id} {
+      allow read:  if autenticado();
+      allow write: if ehAdmin();
+    }
+
+    match /estoque_movimentos/{id} {
+      allow read:   if ehAdmin();
+      allow create: if autenticado();
+      allow update, delete: if false; // kardex é append-only
+    }
+
+    match /compras/{id}          { allow read, write: if ehAdmin(); }
+    match /compras_depara/{id}   { allow read, write: if ehAdmin(); }
+    match /fornecedores/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /despesas/{id}         { allow read, write: if ehAdmin(); }
+    match /plano_contas/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /funcionarios/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /creditos/{id}         { allow read: if autenticado(); allow write: if autenticado(); }
+    match /etiqueta_modelos/{id} { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /contadores/{id}       { allow read, write: if autenticado(); }
+    match /clientes/{id}         { allow read, write: if autenticado(); }
+
+    match /agenda_aulas/{id} {
+      allow read, write: if ehAdmin() || (autenticado() && resource.data.personal_id == meuUid());
+    }
+
     match /{document=**} {
-      allow read, write: if true;
-    }
-    match /alunos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /exercicios/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /equipamentos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /usuarios/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /funcionarios/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /receitas/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /despesas/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /logs/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /config/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /planos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /renovacoes/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /treinos_ativos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /agenda_aulas/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /agendamentos_fixos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /mesociclos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /historico_treinos/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /plano_contas/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /conciliacao_regras/{document} {
-      allow read, write: if request.auth != null;
-    }
-    match /avaliacoes_fisicas/{document} {
-      allow read, write: if true;
+      allow read, write: if ehAdmin();
     }
   }
 }

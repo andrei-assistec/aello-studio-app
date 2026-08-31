@@ -62,8 +62,31 @@ export interface Aluno {
   foto_url?: string;
   personal_id?: string;
   personal_nome?: string;
+  personal_ids?: string[];
   created_at: number;
   updated_at: number;
+}
+
+export function derivarPersonalIds(planos?: PlanoContratadoItem[], legacyPersonalId?: string): string[] {
+  const set = new Set<string>();
+  if (legacyPersonalId && legacyPersonalId.trim() !== '') {
+    set.add(legacyPersonalId.trim());
+  }
+  if (planos && Array.isArray(planos)) {
+    planos.forEach(p => {
+      if (p.personal_id && p.personal_id.trim() !== '') {
+        set.add(p.personal_id.trim());
+      }
+      if (p.horarios_fixos && Array.isArray(p.horarios_fixos)) {
+        p.horarios_fixos.forEach(h => {
+          if (h.personal_id && h.personal_id.trim() !== '') {
+            set.add(h.personal_id.trim());
+          }
+        });
+      }
+    });
+  }
+  return Array.from(set);
 }
 
 export function getPlanosDoAluno(aluno: Aluno): PlanoContratadoItem[] {
@@ -225,3 +248,45 @@ export interface LogEntry {
   details: string;
   created_at: number;
 }
+
+export interface Receita {
+  id: string;
+  aluno_id?: string;
+  aluno_nome?: string;
+  descricao?: string;
+  plano?: string;
+  plano_contratado_id?: string;
+  categoria_id?: string;
+  valor: number;
+  valor_original?: number;
+  tem_desconto?: boolean;
+  justificativa_desconto?: string;
+  vencimento?: string;
+  data_vencimento?: string;
+  status: 'pendente' | 'pago' | 'atrasado' | 'cancelado' | string;
+  forma_pagamento?: string;
+  data_pagamento?: number | string;
+  personal_id?: string | null;
+  vendedor_id?: string | null;
+  origem?: 'MENSALIDADE' | 'AVULSA' | 'VENDA' | string;
+  venda_id?: string;
+  created_at?: number;
+}
+
+export interface Funcionario {
+  id: string;
+  nome: string;
+  cpf?: string;
+  telefone?: string;
+  email?: string;
+  cargo?: string;
+  ativo: boolean;
+  uid?: string | null;
+  perfil?: 'admin' | 'instrutor';
+  comissao_aula_pct?: number;
+  comissao_venda_pct?: number;
+  desconto_venda_teto_pct?: number;
+  overrides_permissoes?: Record<string, any>;
+  created_at?: number;
+}
+

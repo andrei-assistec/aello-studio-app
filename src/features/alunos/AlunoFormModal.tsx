@@ -5,7 +5,7 @@ import { db } from '../../lib/firebase';
 import { useCollection } from '../../hooks/useFirestore';
 import { logActivity } from '../../services/logger';
 import type { ObjetivoModel, Aluno, Plano, HorarioFixoSlot, PlanoContratadoItem } from '../../types/database';
-import { getPlanosDoAluno } from '../../types/database';
+import { getPlanosDoAluno, derivarPersonalIds } from '../../types/database';
 import type { Funcionario } from '../funcionarios/FuncionarioFormModal';
 
 interface AlunoFormModalProps {
@@ -424,6 +424,7 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         personal_nome: primaryPersonalNome,
         tem_multiplos_planos: temMultiplosPlanos,
         planos_contratados: cleanedPlanos,
+        personal_ids: derivarPersonalIds(cleanedPlanos, primaryPersonalId),
         updated_at: Date.now()
       };
 

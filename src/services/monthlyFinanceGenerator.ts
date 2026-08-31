@@ -178,6 +178,9 @@ export const syncMonthlyFinance = async (targetYearMonth?: string) => {
             data_vencimento: vencimentoDate,
             status: 'pendente',
             forma_pagamento: '-',
+            personal_id: planoItem.personal_id || aluno.personal_id || null,
+            vendedor_id: null,
+            origem: 'MENSALIDADE',
             created_at: Date.now()
           });
         }
