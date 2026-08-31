@@ -27,12 +27,18 @@ export function usePermissao(): UsePermissaoReturn {
     return funcionarios.find(f => f.uid === userUid || (user?.email && f.email === user.email)) || null;
   }, [userUid, user?.email, funcionarios]);
 
-  // Se o email/token for da Adriana ou perfil === 'admin', ehAdmin = true
+  // Se o email/token for da Adriana, Andrei ou perfil === 'admin', ehAdmin = true
   const ehAdmin = useMemo(() => {
     if (!user) return false;
     if (funcionarioAtual?.perfil === 'admin') return true;
-    // Fallback de administrador principal
-    if (user.email && (user.email.toLowerCase().includes('aello') || user.email.toLowerCase().includes('adriana') || user.email.toLowerCase().includes('admin'))) {
+    const emailLower = user.email?.toLowerCase() || '';
+    if (
+      emailLower.includes('aello') ||
+      emailLower.includes('adriana') ||
+      emailLower.includes('admin') ||
+      emailLower.includes('andreiplet') ||
+      emailLower.includes('andrei')
+    ) {
       return true;
     }
     return false;

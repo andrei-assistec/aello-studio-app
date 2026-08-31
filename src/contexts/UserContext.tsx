@@ -68,13 +68,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (!userDoc.exists()) {
             // Provisionamento automático (zero setup)
-            const isAdmin = currentUser.email === 'andreiplet@gmail.com';
+            const emailLower = currentUser.email?.toLowerCase() || '';
+            const isAdmin = emailLower.includes('andreiplet') || emailLower.includes('adriana') || emailLower.includes('aello') || emailLower.includes('admin');
             const newProfile: Omit<UserProfile, 'id'> = {
               email: currentUser.email || '',
               nome: currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuário',
               role: isAdmin ? 'admin' : 'trainer',
               modulos: isAdmin 
-                ? ['prescricao', 'financeiro', 'agenda', 'mensalidades'] 
+                ? ['prescricao', 'financeiro', 'agenda', 'mensalidades', 'vendas', 'estoque', 'compras', 'comissao', 'relatorios'] 
                 : ['prescricao'],
               created_at: Date.now(),
             };
@@ -85,7 +86,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Escuta em tempo real para o perfil do usuário
           unsubscribeSnapshot = onSnapshot(userRef, (snapshot) => {
             if (snapshot.exists()) {
-              setProfile({ id: currentUser.uid, ...snapshot.data() } as UserProfile);
+              const data = snapshot.data();
+              const emailLower = currentUser.email?.toLowerCase() || '';
+              const isAdmin = data.role === 'admin' || data.perfil === 'admin' || emailLower.includes('andreiplet') || emailLower.includes('adriana') || emailLower.includes('aello') || emailLower.includes('admin');
+              
+              setProfile({
+                id: currentUser.uid,
+                ...data,
+                role: isAdmin ? 'admin' : (data.role || 'trainer'),
+                modulos: isAdmin
+                  ? ['prescricao', 'financeiro', 'agenda', 'mensalidades', 'vendas', 'estoque', 'compras', 'comissao', 'relatorios']
+                  : (data.modulos || ['prescricao'])
+              } as UserProfile);
             }
             setLoading(false);
           }, (error) => {

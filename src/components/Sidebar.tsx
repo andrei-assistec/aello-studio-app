@@ -16,6 +16,7 @@ import {
 import { auth } from '../lib/firebase';
 import { logActivity } from '../services/logger';
 import { useUser } from '../contexts/UserContext';
+import { usePermissao } from '../hooks/usePermissao';
 import { clsx } from 'clsx';
 
 const SidebarSubItem = ({ to, label, end, onClick }: { to: string; label: string; end?: boolean; onClick?: () => void }) => (
@@ -138,8 +139,26 @@ export const Sidebar = ({
     }
   }, [path]);
 
+  const { ehAdmin: isAclAdmin, pode } = usePermissao();
+
+  const emailLower = profile?.email?.toLowerCase() || auth.currentUser?.email?.toLowerCase() || '';
+  const isUserAdmin = isAclAdmin ||
+                      profile?.role === 'admin' ||
+                      (profile as any)?.perfil === 'admin' ||
+                      emailLower.includes('andreiplet') ||
+                      emailLower.includes('adriana') ||
+                      emailLower.includes('aello') ||
+                      emailLower.includes('admin');
+
   const hasAccess = (moduleName: string) => {
-    return profile?.role === 'admin' || profile?.modulos?.includes(moduleName) || false;
+    if (isUserAdmin) return true;
+    if (moduleName === 'vendas' || moduleName === 'loja') return pode('vendas.ver') || pode('estoque.ver');
+    if (moduleName === 'estoque') return pode('estoque.ver');
+    if (moduleName === 'compras') return pode('compras.ver');
+    if (moduleName === 'comissao') return pode('comissao.ver');
+    if (moduleName === 'cadastros') return pode('alunos.ver');
+    if (moduleName === 'relatorios') return pode('relatorios.ver');
+    return profile?.modulos?.includes(moduleName) || false;
   };
 
   const handleLinkClick = () => {
@@ -222,25 +241,27 @@ export const Sidebar = ({
         )}
 
         {/* 3. Cadastros */}
-        <div className="space-y-0.5">
-          <SidebarGroupHeader 
-            label="Cadastros"
-            icon={<FolderPlus className="w-4 h-4" />}
-            isExpanded={expanded.cadastros}
-            isActive={isCadastrosActive}
-            onClick={() => toggleGroup('cadastros')}
-          />
-          {expanded.cadastros && (
-            <div className="pl-1 space-y-0.5 animate-fade-in">
-              <SidebarSubItem to="/prescricao/alunos" label="Cadastro de Alunos" onClick={handleLinkClick} />
-              <SidebarSubItem to="/financeiro/funcionarios" label="Colaboradores & Profissionais" onClick={handleLinkClick} />
-              <SidebarSubItem to="/mensalidades/planos" label="Planos & Valores" onClick={handleLinkClick} />
-              <SidebarSubItem to="/financeiro/planodecontas" label="Plano de Contas" onClick={handleLinkClick} />
-              <SidebarSubItem to="/prescricao/exercicios" label="Banco de Exercícios" onClick={handleLinkClick} />
-              <SidebarSubItem to="/prescricao/equipamentos" label="Equipamentos" onClick={handleLinkClick} />
-            </div>
-          )}
-        </div>
+        {hasAccess('cadastros') && (
+          <div className="space-y-0.5">
+            <SidebarGroupHeader 
+              label="Cadastros"
+              icon={<FolderPlus className="w-4 h-4" />}
+              isExpanded={expanded.cadastros}
+              isActive={isCadastrosActive}
+              onClick={() => toggleGroup('cadastros')}
+            />
+            {expanded.cadastros && (
+              <div className="pl-1 space-y-0.5 animate-fade-in">
+                <SidebarSubItem to="/prescricao/alunos" label="Cadastro de Alunos" onClick={handleLinkClick} />
+                {hasAccess('admin') && <SidebarSubItem to="/financeiro/funcionarios" label="Colaboradores & Profissionais" onClick={handleLinkClick} />}
+                {hasAccess('admin') && <SidebarSubItem to="/mensalidades/planos" label="Planos & Valores" onClick={handleLinkClick} />}
+                {hasAccess('admin') && <SidebarSubItem to="/financeiro/planodecontas" label="Plano de Contas" onClick={handleLinkClick} />}
+                <SidebarSubItem to="/prescricao/exercicios" label="Banco de Exercícios" onClick={handleLinkClick} />
+                <SidebarSubItem to="/prescricao/equipamentos" label="Equipamentos" onClick={handleLinkClick} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4. Financeiro */}
         {hasAccess('financeiro') && (
@@ -289,40 +310,44 @@ export const Sidebar = ({
         )}
 
         {/* 6. Loja & Estoque (Grupo Expansível) */}
-        <div className="space-y-0.5">
-          <SidebarGroupHeader 
-            label="Loja & Estoque"
-            icon={<ShoppingBag className="w-4 h-4" />}
-            isExpanded={expanded.loja}
-            isActive={isLojaActive}
-            onClick={() => toggleGroup('loja')}
-          />
-          {expanded.loja && (
-            <div className="pl-1 space-y-0.5 animate-fade-in">
-              <SidebarSubItem to="/vendas" label="Vendas (PDV Balcão)" onClick={handleLinkClick} />
-              <SidebarSubItem to="/estoque" label="Estoque de Produtos" onClick={handleLinkClick} />
-              <SidebarSubItem to="/compras" label="Compras & NF-e" onClick={handleLinkClick} />
-              <SidebarSubItem to="/comissoes" label="Comissões sobre Vendas" onClick={handleLinkClick} />
-            </div>
-          )}
-        </div>
+        {hasAccess('loja') && (
+          <div className="space-y-0.5">
+            <SidebarGroupHeader 
+              label="Loja & Estoque"
+              icon={<ShoppingBag className="w-4 h-4" />}
+              isExpanded={expanded.loja}
+              isActive={isLojaActive}
+              onClick={() => toggleGroup('loja')}
+            />
+            {expanded.loja && (
+              <div className="pl-1 space-y-0.5 animate-fade-in">
+                {hasAccess('vendas') && <SidebarSubItem to="/vendas" label="Vendas (PDV Balcão)" onClick={handleLinkClick} />}
+                {hasAccess('estoque') && <SidebarSubItem to="/estoque" label="Estoque de Produtos" onClick={handleLinkClick} />}
+                {hasAccess('compras') && <SidebarSubItem to="/compras" label="Compras & NF-e" onClick={handleLinkClick} />}
+                {hasAccess('comissao') && <SidebarSubItem to="/comissoes" label="Comissões sobre Vendas" onClick={handleLinkClick} />}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 7. Relatórios & Análises (Grupo Expansível) */}
-        <div className="space-y-0.5">
-          <SidebarGroupHeader 
-            label="Relatórios & Análises"
-            icon={<BarChart3 className="w-4 h-4" />}
-            isExpanded={expanded.relatorios}
-            isActive={isRelatoriosActive}
-            onClick={() => toggleGroup('relatorios')}
-          />
-          {expanded.relatorios && (
-            <div className="pl-1 space-y-0.5 animate-fade-in">
-              <SidebarSubItem to="/relatorios/estoque-vendas" label="Curva ABC & Giro" onClick={handleLinkClick} />
-              <SidebarSubItem to="/relatorios" end label="Relatórios Gerais" onClick={handleLinkClick} />
-            </div>
-          )}
-        </div>
+        {hasAccess('relatorios') && (
+          <div className="space-y-0.5">
+            <SidebarGroupHeader 
+              label="Relatórios & Análises"
+              icon={<BarChart3 className="w-4 h-4" />}
+              isExpanded={expanded.relatorios}
+              isActive={isRelatoriosActive}
+              onClick={() => toggleGroup('relatorios')}
+            />
+            {expanded.relatorios && (
+              <div className="pl-1 space-y-0.5 animate-fade-in">
+                <SidebarSubItem to="/relatorios/estoque-vendas" label="Curva ABC & Giro" onClick={handleLinkClick} />
+                <SidebarSubItem to="/relatorios" end label="Relatórios Gerais" onClick={handleLinkClick} />
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Controles do Rodapé */}
