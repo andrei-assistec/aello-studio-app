@@ -84,6 +84,42 @@ function syncSlotsWithFrequency(
   return result;
 }
 
+const toDateInputStr = (val?: any): string => {
+  if (!val) return new Date().toISOString().split('T')[0];
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (s.includes('/')) {
+    const p = s.split('/');
+    if (p.length === 3) {
+      return `${p[2].substring(0, 4)}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+    }
+  }
+  if (s.includes('-')) {
+    const p = s.split('-');
+    if (p.length === 3 && p[0].length <= 2) {
+      return `${p[2].substring(0, 4)}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+    }
+  }
+  const dt = new Date(val);
+  if (!isNaN(dt.getTime())) {
+    return dt.toISOString().split('T')[0];
+  }
+  return new Date().toISOString().split('T')[0];
+};
+
+const extractDueDay = (aluno?: Aluno | null): string => {
+  if (!aluno) return '5';
+  if (aluno.dia_vencimento) return String(aluno.dia_vencimento);
+  if (aluno.vencimento_plano) {
+    const parts = aluno.vencimento_plano.split('-');
+    if (parts.length === 3) {
+      const d = parseInt(parts[2], 10);
+      if (d >= 1 && d <= 31) return String(d);
+    }
+  }
+  return '5';
+};
+
 export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: AlunoFormModalProps) => {
   const [isSaving, setIsSaving] = useState(false);
   
@@ -110,6 +146,8 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
     modalidade: 'musculacao' as 'musculacao' | 'funcional' | 'ambas',
     creditos_reposicao: '0',
     plano_id: '',
+    data_admissao: new Date().toISOString().split('T')[0],
+    dia_vencimento: '5',
     vencimento_plano: '',
     valor_mensalidade: '0'
   });
@@ -162,6 +200,8 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         modalidade: alunoToEdit.modalidade || 'musculacao',
         creditos_reposicao: (alunoToEdit.creditos_reposicao ?? 0).toString(),
         plano_id: alunoToEdit.plano_id || '',
+        data_admissao: toDateInputStr(alunoToEdit.data_admissao || alunoToEdit.data_inicio || alunoToEdit.created_at),
+        dia_vencimento: extractDueDay(alunoToEdit),
         vencimento_plano: alunoToEdit.vencimento_plano || '',
         valor_mensalidade: (alunoToEdit.valor_mensalidade ?? 0).toString()
       });
@@ -212,6 +252,8 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         modalidade: 'musculacao',
         creditos_reposicao: '0',
         plano_id: firstPlano ? firstPlano.id : '',
+        data_admissao: new Date().toISOString().split('T')[0],
+        dia_vencimento: '5',
         vencimento_plano: '',
         valor_mensalidade: firstPlano ? firstPlano.valor.toString() : '0'
       });
@@ -359,12 +401,31 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         consolidatedHorariosFixos = horariosFixos;
       }
 
+      const dueDayNum = parseInt(formData.dia_vencimento, 10) || 5;
+      const dueDayStr = String(dueDayNum).padStart(2, '0');
+
+      // Calcular vencimento_plano para compatibilidade total com DashboardGeral e MensalidadesDashboard
+      let calculatedVencimentoPlano = '';
+      if (formData.data_admissao) {
+        const parts = formData.data_admissao.split('-');
+        if (parts.length === 3) {
+          const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, dueDayNum);
+          d.setMonth(d.getMonth() + 1);
+          calculatedVencimentoPlano = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${dueDayStr}`;
+        }
+      }
+      if (!calculatedVencimentoPlano) {
+        const now = new Date();
+        now.setMonth(now.getMonth() + 1);
+        calculatedVencimentoPlano = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${dueDayStr}`;
+      }
+
       const cleanedPlanos = (temMultiplosPlanos ? planosContratados : [{
         id: `primary-${alunoToEdit?.id || 'new'}`,
         plano_id: formData.plano_id || '',
         plano_nome: primaryPlanoNome,
         valor_mensalidade: primaryValor,
-        dia_vencimento: formData.vencimento_plano ? (parseInt(formData.vencimento_plano.split('-')[2], 10) || 5) : 5,
+        dia_vencimento: dueDayNum,
         personal_id: primaryPersonalId,
         personal_nome: primaryPersonalNome,
         frequencia_semanal: reqFreq,
@@ -376,7 +437,7 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         plano_id: p.plano_id || '',
         plano_nome: p.plano_nome || 'Plano Mensal',
         valor_mensalidade: typeof p.valor_mensalidade === 'number' ? p.valor_mensalidade : (parseFloat(p.valor_mensalidade as any) || 0),
-        dia_vencimento: p.dia_vencimento || 5,
+        dia_vencimento: p.dia_vencimento || dueDayNum,
         personal_id: p.personal_id || '',
         personal_nome: p.personal_nome || '',
         frequencia_semanal: p.frequencia_semanal || 1,
@@ -420,7 +481,10 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         plano_id: formData.plano_id || '',
         plano_nome: primaryPlanoNome,
         valor_mensalidade: primaryValor,
-        vencimento_plano: formData.vencimento_plano || '',
+        data_inicio: formData.data_admissao,
+        data_admissao: formData.data_admissao,
+        dia_vencimento: dueDayNum,
+        vencimento_plano: calculatedVencimentoPlano,
         personal_id: primaryPersonalId,
         personal_nome: primaryPersonalNome,
         tem_multiplos_planos: temMultiplosPlanos,
@@ -454,7 +518,10 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
         const docRef = await addDoc(collection(db, 'alunos'), cleanObjectForFirestore({
           ...finalDataToSave,
           ativo: true,
-          data_inicio: new Date().toLocaleDateString('pt-BR'),
+          data_inicio: formData.data_admissao,
+          data_admissao: formData.data_admissao,
+          dia_vencimento: dueDayNum,
+          vencimento_plano: calculatedVencimentoPlano,
           created_at: Date.now()
         }));
         await logActivity({
@@ -596,7 +663,7 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
             {/* SE FOR PLANO ÚNICO */}
             {!temMultiplosPlanos ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <label className="text-sm font-semibold text-brand-dark">Plano Contratado</label>
                     <select 
@@ -605,21 +672,13 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
                       onChange={(e) => {
                         const pid = e.target.value;
                         const selectedPlano = activePlanos.find(p => p.id === pid);
-                        let nextRenewalStr = '';
                         const targetFreq = selectedPlano ? selectedPlano.frequencia_semanal : parseInt(formData.frequencia_semanal) || 3;
-
-                        if (selectedPlano) {
-                          const d = new Date();
-                          d.setMonth(d.getMonth() + (selectedPlano.duracao_meses || 1));
-                          nextRenewalStr = d.toISOString().split('T')[0];
-                        }
 
                         setFormData(prev => ({
                           ...prev,
                           plano_id: pid,
                           frequencia_semanal: targetFreq.toString(),
                           modalidade: selectedPlano ? selectedPlano.modalidade : prev.modalidade,
-                          vencimento_plano: nextRenewalStr || prev.vencimento_plano,
                           valor_mensalidade: selectedPlano ? selectedPlano.valor.toString() : '0'
                         }));
 
@@ -648,14 +707,29 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-brand-dark">Próximo Vencimento</label>
+                    <label className="text-sm font-semibold text-brand-dark">Data de Admissão / Início</label>
                     <input 
                       type="date" 
-                      name="vencimento_plano" 
-                      value={formData.vencimento_plano} 
+                      name="data_admissao" 
+                      value={formData.data_admissao} 
                       onChange={handleChange} 
-                      className="input-field" 
+                      className="input-field font-medium text-brand-dark" 
+                      required
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-brand-dark">Dia de Vencimento</label>
+                    <select 
+                      name="dia_vencimento" 
+                      value={formData.dia_vencimento} 
+                      onChange={handleChange} 
+                      className="input-field font-bold text-brand-dark"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].map(d => (
+                        <option key={d} value={d}>Todo dia {d}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

@@ -86,9 +86,13 @@ export const RelatorioMovimentacaoAlunos: React.FC = () => {
 
     // 1. Alunos Entrantes (Novos Cadastros no Mês)
     const entrantes = filteredByPersonal.filter(a => {
-      const ts = parseTimestamp(a.created_at || (a as any).data_cadastro);
+      const ts = parseTimestamp(a.data_admissao || a.data_inicio || a.created_at || (a as any).data_cadastro);
       return ts !== null && ts >= startOfMonth && ts < endOfMonth;
-    }).sort((a, b) => (parseTimestamp(b.created_at) || 0) - (parseTimestamp(a.created_at) || 0));
+    }).sort((a, b) => {
+      const tsB = parseTimestamp(b.data_admissao || b.data_inicio || b.created_at) || 0;
+      const tsA = parseTimestamp(a.data_admissao || a.data_inicio || a.created_at) || 0;
+      return tsB - tsA;
+    });
 
     // 2. Alunos Inativados no Mês
     const inativados = filteredByPersonal.filter(a => {
@@ -123,7 +127,7 @@ export const RelatorioMovimentacaoAlunos: React.FC = () => {
       const mLabel = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 
       const eCount = filteredByPersonal.filter(a => {
-        const ts = parseTimestamp(a.created_at || (a as any).data_cadastro);
+        const ts = parseTimestamp(a.data_admissao || a.data_inicio || a.created_at || (a as any).data_cadastro);
         return ts !== null && ts >= mStart && ts < mEnd;
       }).length;
 
@@ -437,7 +441,7 @@ export const RelatorioMovimentacaoAlunos: React.FC = () => {
                   <tbody className="divide-y divide-surface-100 text-surface-700 font-medium">
                     {entrantesNoMes.length > 0 ? (
                       entrantesNoMes.map(aluno => {
-                        const tsCreated = parseTimestamp(aluno.created_at || aluno.data_cadastro);
+                        const tsCreated = parseTimestamp(aluno.data_admissao || aluno.data_inicio || aluno.created_at || aluno.data_cadastro);
                         const dtStr = tsCreated ? new Date(tsCreated).toLocaleDateString('pt-BR') : 'N/I';
                         const pNome = aluno.personal_nome || 'Não atribuído';
 
@@ -566,7 +570,7 @@ export const RelatorioMovimentacaoAlunos: React.FC = () => {
                   <tbody className="divide-y divide-surface-100 text-surface-700 font-medium">
                     {baseAtivaFimMes.length > 0 ? (
                       baseAtivaFimMes.map(aluno => {
-                        const tsCreated = parseTimestamp(aluno.created_at || aluno.data_cadastro);
+                        const tsCreated = parseTimestamp(aluno.data_admissao || aluno.data_inicio || aluno.created_at || aluno.data_cadastro);
                         const dtStr = tsCreated ? new Date(tsCreated).toLocaleDateString('pt-BR') : 'N/I';
 
                         return (
@@ -713,7 +717,7 @@ export const RelatorioMovimentacaoAlunos: React.FC = () => {
             {entrantesNoMes.map((a, i) => (
               <tr key={i} className="border-b border-gray-300">
                 <td className="p-2 border-r border-black font-bold">{a.nome}</td>
-                <td className="p-2 border-r border-black">{parseTimestamp(a.created_at || a.data_cadastro) ? new Date(parseTimestamp(a.created_at || a.data_cadastro)!).toLocaleDateString('pt-BR') : 'N/I'}</td>
+                <td className="p-2 border-r border-black">{parseTimestamp(a.data_admissao || a.data_inicio || a.created_at || a.data_cadastro) ? new Date(parseTimestamp(a.data_admissao || a.data_inicio || a.created_at || a.data_cadastro)!).toLocaleDateString('pt-BR') : 'N/I'}</td>
                 <td className="p-2 border-r border-black">{a.telefone || '-'}</td>
                 <td className="p-2">{a.personal_nome || 'Não atribuído'}</td>
               </tr>

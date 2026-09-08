@@ -57,6 +57,8 @@ export interface Aluno {
   restricoes: string;
   mes_renovacao: string;
   data_inicio: string;
+  data_admissao?: string;
+  dia_vencimento?: number;
   data_reativacao?: string;
   data_cadastro?: string | number;
   inativado_em?: string | number;
@@ -101,8 +103,8 @@ export function getPlanosDoAluno(aluno: Aluno): PlanoContratadoItem[] {
     return [];
   }
 
-  let dueDay: number | string = 10;
-  if (aluno.vencimento_plano) {
+  let dueDay: number | string = aluno.dia_vencimento || 10;
+  if (!aluno.dia_vencimento && aluno.vencimento_plano) {
     const parts = aluno.vencimento_plano.split('-');
     if (parts.length === 3) dueDay = parseInt(parts[2], 10) || 10;
   }

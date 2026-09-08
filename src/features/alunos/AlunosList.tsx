@@ -260,6 +260,16 @@ export const AlunosList = () => {
                         </p>
                         <p className="text-xs text-surface-400">
                           Freq: {aluno.frequencia_semanal}x/sem • <span className="capitalize">{aluno.modalidade || 'musculacao'}</span>
+                          {(aluno.data_admissao || aluno.data_inicio) && (
+                            <> • Admissão: {(() => {
+                              const d = String(aluno.data_admissao || aluno.data_inicio || '');
+                              if (d.includes('-')) {
+                                const p = d.split('-');
+                                if (p.length === 3 && p[0].length === 4) return `${p[2]}/${p[1]}/${p[0]}`;
+                              }
+                              return d;
+                            })()}</>
+                          )}
                         </p>
                         {(aluno.creditos_reposicao ?? 0) > 0 && (
                           <span className="inline-block mt-1 bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">

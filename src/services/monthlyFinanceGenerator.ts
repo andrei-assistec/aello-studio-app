@@ -140,6 +140,11 @@ export const getStudentStartYearMonth = (aluno: Aluno): string | null => {
     if (ym) return ym;
   }
 
+  if (aluno.data_admissao) {
+    const ym = parseYearMonth(aluno.data_admissao);
+    if (ym) return ym;
+  }
+
   if (aluno.data_inicio) {
     const ym = parseYearMonth(aluno.data_inicio);
     if (ym) return ym;
@@ -226,7 +231,7 @@ export const generateSingleStudentMonthFinance = async (aluno: Aluno, targetYear
       );
 
       if (!alreadyHasReceita) {
-        let dueDay = String(planoItem.dia_vencimento || '10').padStart(2, '0');
+        let dueDay = String(planoItem.dia_vencimento || aluno.dia_vencimento || '10').padStart(2, '0');
         const vencimentoDate = `${yearMonth}-${dueDay}`;
 
         await addDoc(collection(db, 'receitas'), {
@@ -312,7 +317,7 @@ export const syncMonthlyFinance = async (targetYearMonth?: string) => {
         );
 
         if (!alreadyHasReceita) {
-          let dueDay = String(planoItem.dia_vencimento || '10').padStart(2, '0');
+          let dueDay = String(planoItem.dia_vencimento || aluno.dia_vencimento || '10').padStart(2, '0');
           const vencimentoDate = `${yearMonth}-${dueDay}`;
 
           await addDoc(collection(db, 'receitas'), {
