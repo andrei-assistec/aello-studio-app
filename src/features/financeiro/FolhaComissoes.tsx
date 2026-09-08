@@ -35,14 +35,19 @@ export const FolhaComissoes = () => {
 
   // Função para calcular salário e comissões reais do profissional
   const calculateProfessionalSalary = (f: Funcionario) => {
+    if (!f) return { countStudents: 0, faturamentoAlunos: 0, comissao: 0, totalPagar: 0 };
+
+    const alunosList = alunos || [];
+    const receitasList = receitas || [];
+
     // 1. Encontrar todos os alunos vinculados a este personal
-    const activeStudents = alunos.filter(aluno => aluno.personal_id === f.id && aluno.ativo !== false);
+    const activeStudents = alunosList.filter(aluno => aluno && aluno.personal_id === f.id && aluno.ativo !== false);
     const countStudents = activeStudents.length;
 
     // 2. Encontrar faturamento de mensalidades pagas no mês atual para estes alunos vinculados
     const studentIds = activeStudents.map(a => a.id);
-    const monthlyRevenues = receitas.filter(r => {
-      if ((r.status || '').toLowerCase() !== 'pago') return false;
+    const monthlyRevenues = receitasList.filter(r => {
+      if (!r || (r.status || '').toLowerCase() !== 'pago') return false;
       let pMs: number | null = null;
       if (typeof r.data_pagamento === 'number') pMs = r.data_pagamento;
       else if (typeof r.data_pagamento === 'string') {
@@ -51,13 +56,15 @@ export const FolhaComissoes = () => {
       }
       return pMs !== null && pMs >= startOfMonth && pMs < endOfMonth && Boolean(r.aluno_id && studentIds.includes(r.aluno_id));
     });
-    const faturamentoAlunos = monthlyRevenues.reduce((acc, r) => acc + r.valor, 0);
+    const faturamentoAlunos = monthlyRevenues.reduce((acc, r) => acc + (parseFloat(r.valor as any) || 0), 0);
 
     // 3. Comissão = percentual do faturamento total de seus alunos
-    const comissao = faturamentoAlunos * (f.comissao_percentual / 100);
+    const pct = parseFloat(f.comissao_percentual as any) || 0;
+    const comissao = faturamentoAlunos * (pct / 100);
 
     // 4. Líquido final = salário fixo + comissão
-    const totalPagar = f.salario_base + comissao;
+    const salarioBase = parseFloat(f.salario_base as any) || 0;
+    const totalPagar = salarioBase + comissao;
 
     return {
       countStudents,
@@ -76,7 +83,7 @@ export const FolhaComissoes = () => {
     try {
       // Registrar no Firestore na coleção de despesas (Contas a Pagar)
       await addDoc(collection(db, 'despesas'), {
-        descricao: `Folha de Pagamento - ${funcionario.nome}`,
+        descricao: `Folha de Pagamento - ${funcionario.nome || 'Colaborador'}`,
         categoria: 'Salários & Comissões',
         valor: totalPagar,
         vencimento: new Date().toISOString().split('T')[0],
@@ -89,7 +96,7 @@ export const FolhaComissoes = () => {
       await logActivity({
         action: 'CREATE',
         resource_type: 'auth',
-        details: `Registrou pagamento de salário/comissão para ${funcionario.nome} no valor de R$ ${totalPagar.toFixed(2)}`
+        details: `Registrou pagamento de salário/comissão para ${funcionario.nome || 'Colaborador'} no valor de R$ ${totalPagar.toFixed(2)}`
       });
 
       setSuccessPayId(funcionario.id);
@@ -102,7 +109,7 @@ export const FolhaComissoes = () => {
     }
   };
 
-  const activeFuncionarios = funcionarios.filter(f => f.ativo !== false);
+  const activeFuncionarios = (funcionarios || []).filter(f => f && f.ativo !== false);
 
   return (
     <div>
@@ -138,7 +145,7 @@ export const FolhaComissoes = () => {
               </div>
               <div>
                 <h4 className="text-2xl font-display font-bold text-brand-dark">
-                  R$ {activeFuncionarios.reduce((acc, f) => acc + f.salario_base, 0).toFixed(2).replace('.', ',')}
+                  R$ {activeFuncionarios.reduce((acc, f) => acc + (parseFloat(f.salario_base as any) || 0), 0).toFixed(2).replace('.', ',')}
                 </h4>
                 <p className="text-xs font-semibold text-surface-400">Total Salários Fixos</p>
               </div>
@@ -151,7 +158,7 @@ export const FolhaComissoes = () => {
                 <h4 className="text-2xl font-display font-bold text-brand-dark">
                   R$ {activeFuncionarios.reduce((acc, f) => {
                     const { comissao } = calculateProfessionalSalary(f);
-                    return acc + comissao;
+                    return acc + (comissao || 0);
                   }, 0).toFixed(2).replace('.', ',')}
                 </h4>
                 <p className="text-xs font-semibold text-surface-400">Total Comissões Estimadas</p>
@@ -177,17 +184,18 @@ export const FolhaComissoes = () => {
                   {activeFuncionarios.length > 0 ? (
                     activeFuncionarios.map((f) => {
                       const { countStudents, faturamentoAlunos, comissao, totalPagar } = calculateProfessionalSalary(f);
+                      const funcDesc = (f.funcao || 'colaborador').replace('_', ' ');
 
                       return (
                         <tr key={f.id} className="hover:bg-surface-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-bold text-brand-dark">{f.nome}</p>
-                              <p className="text-xs text-surface-400 capitalize">{f.funcao.replace('_', ' ')}</p>
+                              <p className="font-bold text-brand-dark">{f.nome || 'Sem Nome'}</p>
+                              <p className="text-xs text-surface-400 capitalize">{funcDesc}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4 font-semibold text-brand-dark">
-                            R$ {f.salario_base.toFixed(2).replace('.', ',')}
+                            R$ {(parseFloat(f.salario_base as any) || 0).toFixed(2).replace('.', ',')}
                           </td>
                           <td className="px-6 py-4">
                             {f.funcao === 'personal_trainer' ? (
@@ -198,20 +206,20 @@ export const FolhaComissoes = () => {
                           </td>
                           <td className="px-6 py-4 font-semibold text-brand-dark">
                             {f.funcao === 'personal_trainer' ? (
-                              <span>R$ {faturamentoAlunos.toFixed(2).replace('.', ',')}</span>
+                              <span>R$ {(faturamentoAlunos || 0).toFixed(2).replace('.', ',')}</span>
                             ) : (
                               <span className="text-surface-400">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4 font-semibold text-indigo-600">
                             {f.funcao === 'personal_trainer' ? (
-                              <span>R$ {comissao.toFixed(2).replace('.', ',')} <span className="text-xs text-surface-400">({f.comissao_percentual}%)</span></span>
+                              <span>R$ {(comissao || 0).toFixed(2).replace('.', ',')} <span className="text-xs text-surface-400">({f.comissao_percentual || 0}%)</span></span>
                             ) : (
                               <span className="text-surface-400">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4 font-bold text-emerald-600">
-                            R$ {totalPagar.toFixed(2).replace('.', ',')}
+                            R$ {(totalPagar || 0).toFixed(2).replace('.', ',')}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex justify-end items-center gap-3">

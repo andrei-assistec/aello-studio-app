@@ -61,7 +61,8 @@ service cloud.firestore {
     match /compras/{id}          { allow read, write: if ehAdmin(); }
     match /compras_depara/{id}   { allow read, write: if ehAdmin(); }
     match /fornecedores/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
-    match /despesas/{id}         { allow read, write: if ehAdmin(); }
+    match /despesas/{id}         { allow read: if autenticado(); allow write: if ehAdmin(); }
+    match /config/{id}           { allow read: if autenticado(); allow write: if ehAdmin(); }
     match /plano_contas/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
     match /funcionarios/{id}     { allow read: if autenticado(); allow write: if ehAdmin(); }
     match /creditos/{id}         { allow read: if autenticado(); allow write: if autenticado(); }
