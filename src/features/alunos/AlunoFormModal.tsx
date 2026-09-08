@@ -6,6 +6,7 @@ import { useCollection } from '../../hooks/useFirestore';
 import { logActivity } from '../../services/logger';
 import type { ObjetivoModel, Aluno, Plano, HorarioFixoSlot, PlanoContratadoItem } from '../../types/database';
 import { getPlanosDoAluno, derivarPersonalIds } from '../../types/database';
+import { updateStudentPendingReceivables } from '../../services/monthlyFinanceGenerator';
 import type { Funcionario } from '../funcionarios/FuncionarioFormModal';
 
 interface AlunoFormModalProps {
@@ -432,12 +433,22 @@ export const AlunoFormModal = ({ isOpen, onClose, onSuccess, alunoToEdit }: Alun
 
       if (alunoToEdit) {
         await updateDoc(doc(db, 'alunos', alunoToEdit.id), finalDataToSave);
+        
+        // Atualiza automaticamente as receitas pendentes futuras do aluno com o novo plano e valor
+        await updateStudentPendingReceivables(
+          alunoToEdit.id,
+          primaryPlanoNome,
+          primaryValor,
+          formData.plano_id,
+          primaryPersonalId
+        );
+
         await logActivity({
           action: 'UPDATE',
           resource_type: 'aluno',
           resource_id: alunoToEdit.id,
           resource_name: novadata.nome,
-          details: `Atualizou dados do aluno ${novadata.nome}${temMultiplosPlanos ? ` (${planosContratados.length} planos contratados)` : ''}`
+          details: `Atualizou dados e contas pendentes do aluno ${novadata.nome}${temMultiplosPlanos ? ` (${planosContratados.length} planos contratados)` : ''}`
         });
       } else {
         const docRef = await addDoc(collection(db, 'alunos'), cleanObjectForFirestore({

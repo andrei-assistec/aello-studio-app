@@ -1,9 +1,60 @@
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Aluno } from '../types/database';
 import { getPlanosDoAluno } from '../types/database';
 import type { Receita } from '../features/financeiro/ReceitaFormModal';
 import type { PlanoConta } from '../features/financeiro/PlanoDeContasPage';
+
+/**
+ * Atualiza todas as contas a receber PENDENTES de um aluno a partir do mês atual/da troca,
+ * refletindo o novo plano, novo valor e novo personal, SEM alterar o histórico de contas pagas.
+ */
+export const updateStudentPendingReceivables = async (
+  alunoId: string,
+  newPlanName: string,
+  newPlanValue: number,
+  newPlanoId?: string,
+  newPersonalId?: string | null,
+  startFromYearMonth?: string
+) => {
+  try {
+    const now = new Date();
+    const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const minYM = startFromYearMonth || currentYM;
+
+    const q = query(collection(db, 'receitas'), where('aluno_id', '==', alunoId));
+    const snap = await getDocs(q);
+
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const status = (data.status || 'pendente').toLowerCase();
+      const vencimento = data.vencimento || data.data_vencimento || '';
+
+      // Apenas receitas PENDENTES com vencimento a partir do mês da troca/atual
+      if (status === 'pendente' && vencimento) {
+        const ym = parseYearMonth(vencimento);
+        if (ym && ym >= minYM) {
+          const updatePayload: any = {
+            plano: newPlanName,
+            valor: newPlanValue,
+            updated_at: Date.now()
+          };
+
+          if (newPlanoId) {
+            updatePayload.plano_contratado_id = newPlanoId;
+          }
+          if (newPersonalId !== undefined) {
+            updatePayload.personal_id = newPersonalId;
+          }
+
+          await updateDoc(doc(db, 'receitas', docSnap.id), updatePayload);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao atualizar contas pendentes do aluno:", err);
+  }
+};
 
 /**
  * Converte qualquer formato de data (string DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY, ISO, timestamp)
