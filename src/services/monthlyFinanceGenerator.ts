@@ -335,41 +335,6 @@ export const syncMonthlyFinance = async (targetYearMonth?: string) => {
       }
     }
 
-    // 5. Generate fixed expenses for the target month
-    const despesasSnap = await getDocs(collection(db, 'despesas'));
-    const despesasMes: any[] = [];
-    despesasSnap.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.vencimento && data.vencimento.startsWith(yearMonth)) {
-        despesasMes.push(data);
-      }
-    });
-
-    const contasFixasSnap = await getDocs(collection(db, 'contas_fixas'));
-    contasFixasSnap.forEach(async (cfDoc) => {
-      const cf = cfDoc.data();
-      if (!cf.ativo) return;
-
-      const alreadyHasDespesa = despesasMes.some(d => d.descricao === cf.nome);
-
-      if (!alreadyHasDespesa) {
-        let dueDay = String(cf.dia_vencimento || '10').padStart(2, '0');
-        const vencimentoDate = `${yearMonth}-${dueDay}`;
-
-        await addDoc(collection(db, 'despesas'), {
-          descricao: cf.nome,
-          categoria: cf.categoria || 'Contas Fixas',
-          categoria_id: cf.categoria_id || '',
-          valor: cf.valor_estimado || 0,
-          vencimento: vencimentoDate,
-          data_vencimento: vencimentoDate,
-          status: 'pendente',
-          forma_pagamento: '-',
-          created_at: Date.now()
-        });
-      }
-    });
-
   } catch (err) {
     console.error("Erro ao sincronizar finanças do mês:", err);
   }

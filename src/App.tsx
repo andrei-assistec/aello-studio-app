@@ -24,7 +24,6 @@ import { ContasPagar } from './features/financeiro/ContasPagar';
 import { FluxoCaixa } from './features/financeiro/FluxoCaixa';
 import { ConciliacaoBancaria } from './features/financeiro/ConciliacaoBancaria';
 import { PlanoDeContasPage } from './features/financeiro/PlanoDeContasPage';
-import { ContasFixasPage } from './features/financeiro/ContasFixasPage';
 import { ProLaborePage } from './features/financeiro/ProLaborePage';
 
 import { AgendaLayout } from './layouts/AgendaLayout';
@@ -117,7 +116,7 @@ function AppRoutes() {
                      <Route path="/prolabore" element={<ProLaborePage />} />
                      <Route path="/receitas" element={<ContasReceber />} />
                      <Route path="/despesas" element={<ContasPagar />} />
-                     <Route path="/contas-fixas" element={<ContasFixasPage />} />
+                     <Route path="/contas-fixas" element={<Navigate to="/financeiro/despesas" replace />} />
                      <Route path="/caixa" element={<FluxoCaixa />} />
                      <Route path="/funcionarios" element={<FuncionariosList />} />
                      <Route path="/folha" element={<FolhaComissoes />} />

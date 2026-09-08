@@ -287,7 +287,6 @@ export const Sidebar = ({
                 <SidebarSubItem to="/financeiro/receitas" label="Contas a Receber" onClick={handleLinkClick} />
                 <SidebarSubItem to="/financeiro/despesas" label="Contas a Pagar" onClick={handleLinkClick} />
                 <SidebarSubItem to="/financeiro/caixa" label="Fluxo de Caixa" onClick={handleLinkClick} />
-                <SidebarSubItem to="/financeiro/contas-fixas" label="Contas Fixas" onClick={handleLinkClick} />
                 <SidebarSubItem to="/financeiro/prolabore" label="Pro Labore" onClick={handleLinkClick} />
                 <SidebarSubItem to="/financeiro/folha" label="Comissões" onClick={handleLinkClick} />
                 <SidebarSubItem to="/financeiro/conciliacao" label="Conciliação Bancária" onClick={handleLinkClick} />
