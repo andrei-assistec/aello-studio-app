@@ -6,35 +6,29 @@ import type { Receita } from '../features/financeiro/ReceitaFormModal';
 import type { PlanoConta } from '../features/financeiro/PlanoDeContasPage';
 
 /**
- * Retorna o mês/ano (formato YYYY-MM) em que a matrícula do aluno se tornou ativa no sistema
- * (considerando data_reativacao, data_inicio ou created_at).
+ * Converte qualquer formato de data (string DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY, ISO, timestamp)
+ * em uma string no formato 'YYYY-MM'.
  */
-export const getStudentStartYearMonth = (aluno: Aluno): string | null => {
-  if (aluno.data_reativacao) {
-    return aluno.data_reativacao;
-  }
+export const parseYearMonth = (val: any): string | null => {
+  if (!val) return null;
 
-  if (aluno.data_inicio) {
-    const str = aluno.data_inicio.trim();
-    if (str.includes('/')) {
-      const parts = str.split('/');
-      if (parts.length === 3) {
-        const year = parts[2];
-        const month = parts[1].padStart(2, '0');
-        return `${year}-${month}`;
-      }
-    } else if (str.includes('-')) {
-      const parts = str.split('-');
-      if (parts.length >= 2) {
-        const year = parts[0];
-        const month = parts[1].padStart(2, '0');
-        return `${year}-${month}`;
-      }
+  if (typeof val === 'number') {
+    const dt = new Date(val);
+    if (!isNaN(dt.getTime())) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
     }
+    return null;
   }
 
-  if (aluno.created_at) {
-    const dt = new Date(aluno.created_at);
+  const str = String(val).trim();
+  if (!str) return null;
+
+  // Timestamp numérico em string (ex: "1787775105520")
+  if (/^\d{12,15}$/.test(str)) {
+    const num = parseInt(str, 10);
+    const dt = new Date(num);
     if (!isNaN(dt.getTime())) {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, '0');
@@ -42,6 +36,94 @@ export const getStudentStartYearMonth = (aluno: Aluno): string | null => {
     }
   }
 
+  // Formato YYYY-MM-DD ou YYYY-MM
+  if (/^\d{4}-\d{1,2}/.test(str)) {
+    const parts = str.split('-');
+    const year = parts[0];
+    const month = parts[1].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  // Formato DD/MM/YYYY ou D/M/YYYY
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      const year = parts[2].trim().substring(0, 4);
+      const month = parts[1].trim().padStart(2, '0');
+      if (year.length === 4 && !isNaN(Number(year))) {
+        return `${year}-${month}`;
+      }
+    }
+  }
+
+  // Formato DD-MM-YYYY ou D-M-YYYY
+  if (str.includes('-')) {
+    const parts = str.split('-');
+    if (parts.length === 3) {
+      const year = parts[2].trim().substring(0, 4);
+      const month = parts[1].trim().padStart(2, '0');
+      if (year.length === 4 && !isNaN(Number(year))) {
+        return `${year}-${month}`;
+      }
+    }
+  }
+
+  // Tenta o construtor Date do JS
+  const dt = new Date(str);
+  if (!isNaN(dt.getTime())) {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  return null;
+};
+
+/**
+ * Retorna o mês/ano (formato YYYY-MM) em que a matrícula do aluno se tornou ativa no sistema
+ * (considerando data_reativacao, data_inicio, data_cadastro, vencimento_plano ou created_at).
+ */
+export const getStudentStartYearMonth = (aluno: Aluno): string | null => {
+  if (aluno.data_reativacao) {
+    const ym = parseYearMonth(aluno.data_reativacao);
+    if (ym) return ym;
+  }
+
+  if (aluno.data_inicio) {
+    const ym = parseYearMonth(aluno.data_inicio);
+    if (ym) return ym;
+  }
+
+  if (aluno.data_cadastro) {
+    const ym = parseYearMonth(aluno.data_cadastro);
+    if (ym) return ym;
+  }
+
+  if (aluno.vencimento_plano) {
+    const ym = parseYearMonth(aluno.vencimento_plano);
+    if (ym) return ym;
+  }
+
+  if (aluno.created_at) {
+    const ym = parseYearMonth(aluno.created_at);
+    if (ym) return ym;
+  }
+
+  return null;
+};
+
+/**
+ * Retorna o mês/ano (formato YYYY-MM) em que a matrícula do aluno foi inativada, se houver.
+ */
+export const getStudentInactivationYearMonth = (aluno: Aluno): string | null => {
+  if (aluno.inativado_em) {
+    const ym = parseYearMonth(aluno.inativado_em);
+    if (ym) return ym;
+  }
+  if (aluno.motivo_inativacao && aluno.updated_at) {
+    const ym = parseYearMonth(aluno.updated_at);
+    if (ym) return ym;
+  }
   return null;
 };
 
@@ -52,6 +134,13 @@ export const generateSingleStudentMonthFinance = async (aluno: Aluno, targetYear
   const startYM = getStudentStartYearMonth(aluno);
   if (startYM && yearMonth < startYM) {
     return;
+  }
+
+  if (aluno.ativo === false) {
+    const inactYM = getStudentInactivationYearMonth(aluno);
+    if (inactYM && yearMonth > inactYM) {
+      return;
+    }
   }
 
   try {
@@ -100,12 +189,15 @@ export const generateSingleStudentMonthFinance = async (aluno: Aluno, targetYear
           data_vencimento: vencimentoDate,
           status: 'pendente',
           forma_pagamento: '-',
+          personal_id: planoItem.personal_id || aluno.personal_id || null,
+          vendedor_id: null,
+          origem: 'MENSALIDADE',
           created_at: Date.now()
         });
       }
     }
   } catch (err) {
-    console.error("Erro ao gerar mensalidade para aluno reativado:", err);
+    console.error("Erro ao gerar mensalidade para aluno:", err);
   }
 };
 
@@ -140,12 +232,17 @@ export const syncMonthlyFinance = async (targetYearMonth?: string) => {
       }
     });
 
-    // 4. Generate pending tuition receivables for active students (supporting multiple plans)
+    // 4. Generate pending tuition receivables for active students
     const activeAlunos = alunos.filter(a => a.ativo !== false);
 
     for (const aluno of activeAlunos) {
       const startYM = getStudentStartYearMonth(aluno);
       if (startYM && yearMonth < startYM) {
+        continue;
+      }
+
+      const inactYM = getStudentInactivationYearMonth(aluno);
+      if (inactYM && yearMonth > inactYM) {
         continue;
       }
 

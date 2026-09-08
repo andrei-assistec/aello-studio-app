@@ -92,44 +92,54 @@ export const AlunosList = () => {
           `[ CANCELAR ] = Escolher se deseja MANTER as contas pendentes ou cancelar a desativação.`
         );
 
-        if (decisao) {
-          // Apagar contas pendentes do aluno
-          for (const p of pendentes) {
-            await deleteDoc(doc(db, 'receitas', p.id));
-          }
-          await updateDoc(doc(db, 'alunos', aluno.id), { ativo: false });
-          await logActivity({
-            action: 'UPDATE',
-            resource_type: 'aluno',
-            resource_id: aluno.id,
-            resource_name: aluno.nome,
-            details: `Desativou aluno ${aluno.nome} e removeu ${pendentes.length} conta(s) pendente(s) não cobradas`
-          });
-        } else {
-          const manterContas = window.confirm(`Deseja MANTER as ${pendentes.length} contas pendentes registradas no sistema e apenas desativar o aluno?`);
-          if (manterContas) {
-            await updateDoc(doc(db, 'alunos', aluno.id), { ativo: false });
+          const inactPayload = {
+            ativo: false,
+            inativado_em: Date.now(),
+            updated_at: Date.now()
+          };
+
+          if (decisao) {
+            // Apagar contas pendentes do aluno
+            for (const p of pendentes) {
+              await deleteDoc(doc(db, 'receitas', p.id));
+            }
+            await updateDoc(doc(db, 'alunos', aluno.id), inactPayload);
             await logActivity({
               action: 'UPDATE',
               resource_type: 'aluno',
               resource_id: aluno.id,
               resource_name: aluno.nome,
-              details: `Desativou aluno ${aluno.nome} mantendo ${pendentes.length} conta(s) pendente(s) no sistema`
+              details: `Desativou aluno ${aluno.nome} e removeu ${pendentes.length} conta(s) pendente(s) não cobradas`
+            });
+          } else {
+            const manterContas = window.confirm(`Deseja MANTER as ${pendentes.length} contas pendentes registradas no sistema e apenas desativar o aluno?`);
+            if (manterContas) {
+              await updateDoc(doc(db, 'alunos', aluno.id), inactPayload);
+              await logActivity({
+                action: 'UPDATE',
+                resource_type: 'aluno',
+                resource_id: aluno.id,
+                resource_name: aluno.nome,
+                details: `Desativou aluno ${aluno.nome} mantendo ${pendentes.length} conta(s) pendente(s) no sistema`
+              });
+            }
+          }
+        } else {
+          if (window.confirm(`Deseja DESATIVAR a matrícula do aluno ${aluno.nome}?`)) {
+            await updateDoc(doc(db, 'alunos', aluno.id), {
+              ativo: false,
+              inativado_em: Date.now(),
+              updated_at: Date.now()
+            });
+            await logActivity({
+              action: 'UPDATE',
+              resource_type: 'aluno',
+              resource_id: aluno.id,
+              resource_name: aluno.nome,
+              details: `Desativou aluno ${aluno.nome}`
             });
           }
         }
-      } else {
-        if (window.confirm(`Deseja DESATIVAR a matrícula do aluno ${aluno.nome}?`)) {
-          await updateDoc(doc(db, 'alunos', aluno.id), { ativo: false });
-          await logActivity({
-            action: 'UPDATE',
-            resource_type: 'aluno',
-            resource_id: aluno.id,
-            resource_name: aluno.nome,
-            details: `Desativou aluno ${aluno.nome}`
-          });
-        }
-      }
     } catch (e: any) {
       console.error("Erro ao alterar status do aluno:", e);
       alert("Erro ao alterar status do aluno: " + e.message);
