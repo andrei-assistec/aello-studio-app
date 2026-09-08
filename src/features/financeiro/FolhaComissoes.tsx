@@ -18,7 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { Funcionario } from '../funcionarios/FuncionarioFormModal';
-import type { Aluno } from '../../types/database';
+import type { Aluno, Plano } from '../../types/database';
 import type { Receita } from './ReceitaFormModal';
 
 interface DetailedCommissionItem {
@@ -38,6 +38,7 @@ export const FolhaComissoes = () => {
   const { data: alunos, loading: loadingAlunos } = useCollection<Aluno>('alunos', 'nome');
   const { data: receitas, loading: loadingRec } = useCollection<Receita>('receitas', 'vencimento', 'desc');
   const { data: despesas, loading: loadingDesp } = useCollection<any>('despesas');
+  const { data: planosList } = useCollection<Plano>('planos', 'nome');
 
   const [loadingPayId, setLoadingPayId] = useState<string | null>(null);
   const [successPayId, setSuccessPayId] = useState<string | null>(null);
@@ -90,61 +91,67 @@ export const FolhaComissoes = () => {
     return { exists: true, status: 'PENDENTE', despesa: despesaMatch };
   };
 
-  // Helper para determinar o % de comissão específico da modalidade do aluno
+  // Helper para determinar o % de comissão específico do plano contratado pelo aluno
   const getCommissionPctForRevenue = (f: Funcionario, alunoObj: Aluno | undefined, r: Receita): { pct: number; modalityName: string } => {
-    const comissMap = f.comissoes_modalidades;
+    const comissMap = f.comissoes_modalidades || {};
     const defaultPct = parseFloat(f.comissao_percentual as any) || 0;
 
-    // Se o colaborador não possuir regras de comissão por modalidade configuradas, usa o padrão geral
+    // Se o colaborador não possuir regras de comissão por plano configuradas, usa o padrão geral
     if (!comissMap || Object.keys(comissMap).length === 0) {
-      return { pct: defaultPct, modalityName: 'Geral' };
+      return { pct: defaultPct, modalityName: 'Padrão Geral' };
     }
 
-    const descLower = ((r.descricao || '') + ' ' + (alunoObj?.modalidade || '') + ' ' + (alunoObj?.plano_nome || '')).toLowerCase();
-
-    // 1. Verificação por ID de Plano Específico
+    // 1. Verificação por ID direto do plano do aluno (alunoObj.plano_id)
     if (alunoObj?.plano_id && comissMap[alunoObj.plano_id] !== undefined) {
-      return { pct: comissMap[alunoObj.plano_id], modalityName: alunoObj.plano_nome || 'Plano Específico' };
-    }
-    if (r.plano_contratado_id && comissMap[r.plano_contratado_id] !== undefined) {
-      return { pct: comissMap[r.plano_contratado_id], modalityName: r.descricao || 'Plano Específico' };
+      const pFound = (planosList || []).find(p => p.id === alunoObj.plano_id);
+      return { pct: comissMap[alunoObj.plano_id], modalityName: pFound?.nome || alunoObj.plano_nome || 'Plano' };
     }
 
-    // 2. Verificação por Chave de Modalidade Padrão
-    if (descLower.includes('funcional')) {
-      const pct = comissMap['funcional'] ?? 0;
-      return { pct, modalityName: 'Treino Funcional' };
-    }
-    if (descLower.includes('idoso')) {
-      const pct = comissMap['idosos'] ?? 0;
-      return { pct, modalityName: 'Grupo de Idosos' };
-    }
-    if (descLower.includes('pilates')) {
-      const pct = comissMap['pilates'] ?? 0;
-      return { pct, modalityName: 'Pilates' };
-    }
-    if (descLower.includes('personal') || descLower.includes('individual')) {
-      const pct = comissMap['personal'] ?? 0;
-      return { pct, modalityName: 'Personal Individual' };
-    }
-    if (descLower.includes('avalia')) {
-      const pct = comissMap['avaliacao'] ?? 0;
-      return { pct, modalityName: 'Avaliação Física' };
-    }
-    if (descLower.includes('muscula') || descLower.includes('mensal')) {
-      const pct = comissMap['musculacao'] ?? 0;
-      return { pct, modalityName: 'Musculação' };
+    // 2. Verificação por ID de plano contratado (caso o aluno tenha múltiplos planos)
+    if (alunoObj?.planos_contratados && Array.isArray(alunoObj.planos_contratados)) {
+      const pContratado = alunoObj.planos_contratados.find(p => p.id === r.plano_contratado_id || p.plano_id === r.plano_contratado_id);
+      if (pContratado?.plano_id && comissMap[pContratado.plano_id] !== undefined) {
+        return { pct: comissMap[pContratado.plano_id], modalityName: pContratado.plano_nome || 'Plano' };
+      }
     }
 
-    // 3. Verificação por chave dinâmica cadastrada
+    // 3. Verificação por nome do plano em r.plano ou alunoObj.plano_nome
+    const planoNome = (r.plano || alunoObj?.plano_nome || '').trim();
+    if (planoNome) {
+      // Procura o plano pelo nome na lista de planos cadastrados
+      const matchedPlano = (planosList || []).find(p => p.nome.trim().toLowerCase() === planoNome.toLowerCase() || p.id === planoNome);
+      if (matchedPlano && comissMap[matchedPlano.id] !== undefined) {
+        return { pct: comissMap[matchedPlano.id], modalityName: matchedPlano.nome };
+      }
+      // Se chave foi salva pelo próprio nome do plano
+      if (comissMap[planoNome] !== undefined) {
+        return { pct: comissMap[planoNome], modalityName: planoNome };
+      }
+    }
+
+    // 4. Verificação por correspondência de texto na lista de planos cadastrados
+    for (const p of (planosList || [])) {
+      const pDesc = ((r.descricao || '') + ' ' + (r.plano || '') + ' ' + (alunoObj?.plano_nome || '')).toLowerCase();
+      if (pDesc.includes(p.nome.toLowerCase())) {
+        if (comissMap[p.id] !== undefined) {
+          return { pct: comissMap[p.id], modalityName: p.nome };
+        }
+        if (comissMap[p.nome] !== undefined) {
+          return { pct: comissMap[p.nome], modalityName: p.nome };
+        }
+      }
+    }
+
+    // 5. Verificação de chaves dinâmicas no mapa de comissões
     for (const [key, val] of Object.entries(comissMap)) {
-      if (descLower.includes(key.toLowerCase())) {
+      const pDesc = ((r.descricao || '') + ' ' + (r.plano || '') + ' ' + (alunoObj?.plano_nome || '')).toLowerCase();
+      if (pDesc.includes(key.toLowerCase())) {
         return { pct: val, modalityName: key };
       }
     }
 
-    // Regra de Negócio: Se a modalidade não foi configurada/preenchida para o profissional, a comissão é 0%
-    return { pct: 0, modalityName: 'Não Configurada (0%)' };
+    // Regra de Negócio: Se o plano não tiver comissão configurada para o profissional, a comissão é 0%
+    return { pct: 0, modalityName: (planoNome || 'Plano') + ' (0%)' };
   };
 
   // Função para calcular salário e comissões reais do profissional no mês selecionado

@@ -175,7 +175,18 @@ export const FuncionariosList = () => {
                         R$ {(f.salario_base || 0).toFixed(2).replace('.', ',')}
                       </td>
                       <td className="px-6 py-4 font-semibold text-indigo-600">
-                        {f.comissao_percentual || 0}%
+                        {f.comissoes_modalidades && Object.values(f.comissoes_modalidades).some(v => v > 0) ? (
+                          <div className="flex flex-col">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 w-fit">
+                              Por Plano
+                            </span>
+                            {f.comissao_percentual ? (
+                              <span className="text-[10px] text-surface-400 mt-0.5">Padrão: {f.comissao_percentual}%</span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          `${f.comissao_percentual || 0}%`
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${

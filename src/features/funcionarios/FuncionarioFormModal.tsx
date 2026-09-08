@@ -28,16 +28,7 @@ interface FuncionarioFormModalProps {
   funcionarioToEdit?: Funcionario | null;
 }
 
-// Modalidades Master padrão do estúdio para comissão por modalidade
-const MODALIDADES_PADRAO = [
-  { key: 'musculacao', label: 'Musculação (Planos de Musculação)' },
-  { key: 'funcional', label: 'Treino Funcional' },
-  { key: 'idosos', label: 'Grupo de Idosos' },
-  { key: 'pilates', label: 'Pilates' },
-  { key: 'personal', label: 'Personal Trainer Individual' },
-  { key: 'avaliacao', label: 'Avaliação Física' },
-  { key: 'loja', label: 'Vendas de Produtos (Loja / Balcão)' },
-];
+import type { Plano } from '../../types/database';
 
 export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({ 
   isOpen, 
@@ -45,7 +36,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
   onSuccess, 
   funcionarioToEdit 
 }) => {
-  const { data: planos } = useCollection<any>('planos');
+  const { data: planos, loading: loadingPlanos } = useCollection<Plano>('planos', 'nome');
 
   const [activeTab, setActiveTab] = useState<'dados' | 'comissoes'>('dados');
   const [isSaving, setIsSaving] = useState(false);
@@ -96,14 +87,15 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleComissaoModalidadeChange = (key: string, valueStr: string) => {
+  const handleComissaoPlanoChange = (planoId: string, planoNome: string, valueStr: string) => {
     const num = parseFloat(valueStr);
     const val = isNaN(num) || num < 0 ? 0 : Math.min(100, num);
     setFormData(prev => ({
       ...prev,
       comissoes_modalidades: {
         ...prev.comissoes_modalidades,
-        [key]: val
+        [planoId]: val,
+        [planoNome]: val
       }
     }));
   };
@@ -135,7 +127,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
         await logActivity({
           action: 'UPDATE',
           resource_type: 'auth',
-          details: `Atualizou cadastro e comissões por modalidade do colaborador ${formData.nome}`
+          details: `Atualizou cadastro e comissões por plano do colaborador ${formData.nome}`
         });
       } else {
         await addDoc(collection(db, 'funcionarios'), {
@@ -145,7 +137,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
         await logActivity({
           action: 'CREATE',
           resource_type: 'auth',
-          details: `Cadastrou o colaborador ${formData.nome} com regras de comissão por modalidade`
+          details: `Cadastrou o colaborador ${formData.nome} com regras de comissão por plano`
         });
       }
       onSuccess();
@@ -159,17 +151,8 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Lista consolidada de modalidades/planos configuráveis
-  const allModalidadesList = [
-    ...MODALIDADES_PADRAO,
-    ...(planos || []).map((p: any) => ({
-      key: p.id || p.nome,
-      label: `Plano: ${p.nome} (${p.modalidade || 'Geral'})`
-    }))
-  ];
-
-  // Remove duplicados por key
-  const uniqueModalidades = Array.from(new Map(allModalidadesList.map(item => [item.key, item])).values());
+  // Lista de Planos cadastrados em Planos & Valores
+  const planosList = (planos || []).filter(p => p && p.ativo !== false);
 
   return (
     <div className="fixed inset-0 bg-brand-dark/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -182,7 +165,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
                 <UserCheck className="w-6 h-6 text-brand-medium" />
                 {funcionarioToEdit ? 'Editar Cadastro do Colaborador' : 'Novo Colaborador'}
               </h3>
-              <p className="text-xs text-surface-500">Configure os dados pessoais, salário fixo e percentuais de comissão por modalidade.</p>
+              <p className="text-xs text-surface-500">Configure os dados pessoais, salário fixo e percentuais de comissão por plano.</p>
             </div>
             <button 
               onClick={onClose}
@@ -216,7 +199,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
               }`}
             >
               <Percent className="w-3.5 h-3.5" />
-              Comissões por Modalidade
+              Comissões por Plano
             </button>
           </div>
         </div>
@@ -323,7 +306,7 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
                       max="100"
                       min="0"
                     />
-                    <p className="text-[10px] text-surface-400 mt-1">Usada quando a modalidade não tiver percentual específico.</p>
+                    <p className="text-[10px] text-surface-400 mt-1">Usada quando o plano não tiver percentual específico configurado.</p>
                   </div>
                 </div>
 
@@ -350,44 +333,59 @@ export const FuncionarioFormModal: React.FC<FuncionarioFormModalProps> = ({
                 <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-start gap-3">
                   <Award className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                   <div className="text-xs text-indigo-900 leading-relaxed font-medium">
-                    <strong className="block font-bold mb-0.5 text-indigo-950">Comissão Específica por Modalidade / Plano:</strong>
-                    Preencha o % de comissão que este colaborador receberá para cada modalidade de aula. 
+                    <strong className="block font-bold mb-0.5 text-indigo-950">Comissão Específica por Plano (Planos & Valores):</strong>
+                    Defina o % de comissão que este colaborador receberá para cada plano contratado pelos alunos.
                     <span className="block font-bold text-indigo-700 mt-1">
-                      ⚠️ Atenção: Se o campo ficar em branco ou for 0, a comissão para esta modalidade será 0% (Sem comissão).
+                      ⚠️ Atenção: Se o campo ficar em branco ou for 0, a comissão para este plano será de 0% (Sem comissão).
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-                  {uniqueModalidades.map(item => {
-                    const val = formData.comissoes_modalidades[item.key] ?? '';
-                    return (
-                      <div 
-                        key={item.key} 
-                        className="p-3.5 bg-surface-50 rounded-2xl border border-surface-200 flex items-center justify-between gap-3 hover:border-indigo-300 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <label className="text-xs font-bold text-brand-dark block truncate">{item.label}</label>
-                          <span className="text-[10px] text-surface-400">Modalidade: {item.key}</span>
-                        </div>
+                {loadingPlanos ? (
+                  <div className="py-12 flex flex-col items-center justify-center gap-2 text-surface-400">
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                    <span className="text-xs font-semibold">Carregando planos cadastrados...</span>
+                  </div>
+                ) : planosList.length === 0 ? (
+                  <div className="p-6 text-center text-surface-500 text-xs bg-surface-50 rounded-2xl border border-surface-200">
+                    Nenhum plano cadastrado na tela de Planos & Valores. Cadastre os planos primeiro em Mensalidades &gt; Planos & Valores.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                    {planosList.map(plano => {
+                      const val = formData.comissoes_modalidades[plano.id] ?? formData.comissoes_modalidades[plano.nome] ?? '';
+                      const modalidadeFormatada = plano.modalidade === 'musculacao' ? 'Musculação' : plano.modalidade === 'funcional' ? 'Funcional' : 'Geral';
 
-                        <div className="flex items-center gap-1 min-w-[100px]">
-                          <input 
-                            type="number"
-                            step="1"
-                            min="0"
-                            max="100"
-                            placeholder="0"
-                            value={val}
-                            onChange={(e) => handleComissaoModalidadeChange(item.key, e.target.value)}
-                            className="input-field text-xs font-bold text-center py-1.5 px-2 text-indigo-600 bg-white"
-                          />
-                          <span className="text-xs font-bold text-surface-500">%</span>
+                      return (
+                        <div 
+                          key={plano.id} 
+                          className="p-3.5 bg-surface-50 rounded-2xl border border-surface-200 flex items-center justify-between gap-3 hover:border-indigo-300 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <label className="text-xs font-bold text-brand-dark block truncate">{plano.nome}</label>
+                            <span className="text-[10px] text-surface-500 font-semibold block mt-0.5">
+                              R$ {Number(plano.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} • {plano.frequencia_semanal ? `${plano.frequencia_semanal}x/sem` : ''} ({modalidadeFormatada})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 min-w-[100px]">
+                            <input 
+                              type="number"
+                              step="1"
+                              min="0"
+                              max="100"
+                              placeholder="0"
+                              value={val}
+                              onChange={(e) => handleComissaoPlanoChange(plano.id, plano.nome, e.target.value)}
+                              className="w-20 px-2.5 py-1.5 bg-white border border-surface-200 rounded-xl text-xs font-bold text-indigo-600 text-right focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                            <span className="text-xs font-bold text-surface-400">%</span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
