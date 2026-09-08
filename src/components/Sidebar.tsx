@@ -349,6 +349,7 @@ export const Sidebar = ({
             />
             {expanded.relatorios && (
               <div className="pl-1 space-y-0.5 animate-fade-in">
+                <SidebarSubItem to="/relatorios/dre" label="DRE Gerencial" onClick={handleLinkClick} />
                 <SidebarSubItem to="/relatorios/movimentacao-alunos" label="Entradas & Inativações" onClick={handleLinkClick} />
                 <SidebarSubItem to="/relatorios/estoque-vendas" label="Curva ABC & Giro" onClick={handleLinkClick} />
                 <SidebarSubItem to="/relatorios" end label="Relatórios Gerais" onClick={handleLinkClick} />

@@ -16,6 +16,7 @@ import { TreinoMobile } from './pages/TreinoMobile';
 import { AppLayout } from './layouts/AppLayout';
 import { RelatoriosPage } from './features/relatorios/RelatoriosPage';
 import { RelatorioMovimentacaoAlunos } from './features/relatorios/RelatorioMovimentacaoAlunos';
+import { RelatorioDRE } from './features/relatorios/RelatorioDRE';
 
 import { FinanceiroLayout } from './layouts/FinanceiroLayout';
 import { FinanceiroDashboard } from './features/financeiro/FinanceiroDashboard';
@@ -226,6 +227,17 @@ function AppRoutes() {
           />
 
           {/* Relatórios & Análises */}
+          <Route 
+            path="/relatorios/dre" 
+            element={
+              <ProtectedRoute module="relatorios">
+                <AppLayout>
+                  <RelatorioDRE />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="/relatorios/movimentacao-alunos" 
             element={

@@ -1,15 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCollection } from '../../hooks/useFirestore';
 import { 
   ClipboardList, 
   TrendingUp, 
-  Loader2,
-  Clock,
-  AlertCircle,
-  MessageSquare,
-  Activity,
-  Award,
-  UserCheck
+  Loader2, 
+  Clock, 
+  AlertCircle, 
+  MessageSquare, 
+  Activity, 
+  Award, 
+  UserCheck,
+  BarChart3,
+  ArrowRight
 } from 'lucide-react';
 import type { Aluno, AgendamentoFixo, AulaSessao, Mesociclo } from '../../types/database';
 import type { Receita } from '../financeiro/ReceitaFormModal';
@@ -19,6 +22,7 @@ import type { Funcionario } from '../funcionarios/FuncionarioFormModal';
 type PeriodFilter = 'atual' | '3meses' | '6meses' | '12meses' | 'todos';
 
 export const RelatoriosPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'financeiro' | 'frequencia' | 'treinos' | 'colaboradores'>('financeiro');
   const [period, setPeriod] = useState<PeriodFilter>('atual');
 
@@ -319,6 +323,33 @@ export const RelatoriosPage = () => {
       {/* TAB CONTENT: FINANCEIRO */}
       {activeTab === 'financeiro' && (
         <div className="space-y-8 animate-fade-in">
+          {/* Banner de Acesso à DRE Gerencial Completa */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-dark text-white shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+                  DRE Gerencial Completa
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-400 text-emerald-950">
+                    Novo
+                  </span>
+                </h3>
+                <p className="text-xs text-white/80 font-medium">
+                  Margem de Contribuição Real vs. Ideal, Ponto de Equilíbrio em Alunos e R$, Lucratividade, Custos Fixos/Variáveis e Investimentos.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/relatorios/dre')}
+              className="px-4 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 text-xs font-black rounded-xl transition-all shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer self-stretch sm:self-auto justify-center"
+            >
+              Abrir DRE Completa
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
           {/* Resumos rápidos */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="glass-card p-5 border-l-4 border-l-green-500">
