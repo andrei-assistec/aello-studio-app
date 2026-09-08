@@ -14,6 +14,7 @@ export interface Receita {
   aluno_nome?: string;
   descricao?: string;
   plano?: string;
+  plano_contratado_id?: string;
   categoria_id?: string;
   valor: number;
   valor_original?: number;
@@ -24,6 +25,9 @@ export interface Receita {
   status: 'pago' | 'pendente' | 'atrasado' | string;
   forma_pagamento?: string;
   data_pagamento?: number | string;
+  personal_id?: string | null;
+  vendedor_id?: string | null;
+  origem?: string;
   created_at?: number;
 }
 

@@ -90,6 +90,63 @@ export const FolhaComissoes = () => {
     return { exists: true, status: 'PENDENTE', despesa: despesaMatch };
   };
 
+  // Helper para determinar o % de comissão específico da modalidade do aluno
+  const getCommissionPctForRevenue = (f: Funcionario, alunoObj: Aluno | undefined, r: Receita): { pct: number; modalityName: string } => {
+    const comissMap = f.comissoes_modalidades;
+    const defaultPct = parseFloat(f.comissao_percentual as any) || 0;
+
+    // Se o colaborador não possuir regras de comissão por modalidade configuradas, usa o padrão geral
+    if (!comissMap || Object.keys(comissMap).length === 0) {
+      return { pct: defaultPct, modalityName: 'Geral' };
+    }
+
+    const descLower = ((r.descricao || '') + ' ' + (alunoObj?.modalidade || '') + ' ' + (alunoObj?.plano_nome || '')).toLowerCase();
+
+    // 1. Verificação por ID de Plano Específico
+    if (alunoObj?.plano_id && comissMap[alunoObj.plano_id] !== undefined) {
+      return { pct: comissMap[alunoObj.plano_id], modalityName: alunoObj.plano_nome || 'Plano Específico' };
+    }
+    if (r.plano_contratado_id && comissMap[r.plano_contratado_id] !== undefined) {
+      return { pct: comissMap[r.plano_contratado_id], modalityName: r.descricao || 'Plano Específico' };
+    }
+
+    // 2. Verificação por Chave de Modalidade Padrão
+    if (descLower.includes('funcional')) {
+      const pct = comissMap['funcional'] ?? 0;
+      return { pct, modalityName: 'Treino Funcional' };
+    }
+    if (descLower.includes('idoso')) {
+      const pct = comissMap['idosos'] ?? 0;
+      return { pct, modalityName: 'Grupo de Idosos' };
+    }
+    if (descLower.includes('pilates')) {
+      const pct = comissMap['pilates'] ?? 0;
+      return { pct, modalityName: 'Pilates' };
+    }
+    if (descLower.includes('personal') || descLower.includes('individual')) {
+      const pct = comissMap['personal'] ?? 0;
+      return { pct, modalityName: 'Personal Individual' };
+    }
+    if (descLower.includes('avalia')) {
+      const pct = comissMap['avaliacao'] ?? 0;
+      return { pct, modalityName: 'Avaliação Física' };
+    }
+    if (descLower.includes('muscula') || descLower.includes('mensal')) {
+      const pct = comissMap['musculacao'] ?? 0;
+      return { pct, modalityName: 'Musculação' };
+    }
+
+    // 3. Verificação por chave dinâmica cadastrada
+    for (const [key, val] of Object.entries(comissMap)) {
+      if (descLower.includes(key.toLowerCase())) {
+        return { pct: val, modalityName: key };
+      }
+    }
+
+    // Regra de Negócio: Se a modalidade não foi configurada/preenchida para o profissional, a comissão é 0%
+    return { pct: 0, modalityName: 'Não Configurada (0%)' };
+  };
+
   // Função para calcular salário e comissões reais do profissional no mês selecionado
   const calculateProfessionalSalary = (f: Funcionario) => {
     if (!f) return { 
@@ -116,8 +173,8 @@ export const FolhaComissoes = () => {
     const studentIds = activeStudents.map(a => a.id);
 
     // 2. Encontrar mensalidades pagas no mês selecionado para estes alunos
-    const pct = parseFloat(f.comissao_percentual as any) || 0;
     const detailedItems: DetailedCommissionItem[] = [];
+    let totalComissaoCalculada = 0;
 
     const monthlyRevenues = receitasList.filter(r => {
       if (!r || (r.status || '').toLowerCase() !== 'pago') return false;
@@ -135,7 +192,11 @@ export const FolhaComissoes = () => {
       if (isDateInMonth && isStudentMatch) {
         const alunoObj = activeStudents.find(a => a.id === r.aluno_id);
         const valorPago = parseFloat(r.valor as any) || 0;
+        
+        // Calcula a comissão específica da modalidade do aluno
+        const { pct, modalityName } = getCommissionPctForRevenue(f, alunoObj, r);
         const comissaoValor = valorPago * (pct / 100);
+        totalComissaoCalculada += comissaoValor;
 
         let dtFormatted = 'Data N/I';
         if (pMs) {
@@ -146,7 +207,7 @@ export const FolhaComissoes = () => {
           receitaId: r.id,
           alunoId: r.aluno_id || '',
           alunoNome: alunoObj?.nome || r.aluno_nome || 'Aluno Sem Nome',
-          descricao: r.descricao || 'Mensalidade',
+          descricao: `${r.descricao || 'Mensalidade'} (${modalityName})`,
           dataPagamento: dtFormatted,
           valorPago,
           comissaoPct: pct,
@@ -160,14 +221,13 @@ export const FolhaComissoes = () => {
     });
 
     const faturamentoAlunos = monthlyRevenues.reduce((acc, r) => acc + (parseFloat(r.valor as any) || 0), 0);
-    const comissao = faturamentoAlunos * (pct / 100);
     const salarioBase = parseFloat(f.salario_base as any) || 0;
-    const totalPagar = salarioBase + comissao;
+    const totalPagar = salarioBase + totalComissaoCalculada;
 
     return {
       countStudents,
       faturamentoAlunos,
-      comissao,
+      comissao: totalComissaoCalculada,
       salarioBase,
       totalPagar,
       detailedItems

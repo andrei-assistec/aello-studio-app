@@ -58,6 +58,9 @@ export interface Aluno {
   mes_renovacao: string;
   data_inicio: string;
   data_reativacao?: string;
+  data_cadastro?: string | number;
+  inativado_em?: string | number;
+  motivo_inativacao?: string;
   ativo: boolean;
   foto_url?: string;
   personal_id?: string;
@@ -285,6 +288,7 @@ export interface Funcionario {
   perfil?: 'admin' | 'instrutor';
   comissao_aula_pct?: number;
   comissao_venda_pct?: number;
+  comissoes_modalidades?: Record<string, number>;
   desconto_venda_teto_pct?: number;
   overrides_permissoes?: Record<string, any>;
   created_at?: number;

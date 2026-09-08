@@ -15,6 +15,7 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { TreinoMobile } from './pages/TreinoMobile';
 import { AppLayout } from './layouts/AppLayout';
 import { RelatoriosPage } from './features/relatorios/RelatoriosPage';
+import { RelatorioMovimentacaoAlunos } from './features/relatorios/RelatorioMovimentacaoAlunos';
 
 import { FinanceiroLayout } from './layouts/FinanceiroLayout';
 import { FinanceiroDashboard } from './features/financeiro/FinanceiroDashboard';
@@ -226,6 +227,17 @@ function AppRoutes() {
           />
 
           {/* Relatórios & Análises */}
+          <Route 
+            path="/relatorios/movimentacao-alunos" 
+            element={
+              <ProtectedRoute module="relatorios">
+                <AppLayout>
+                  <RelatorioMovimentacaoAlunos />
+                </AppLayout>
+              </ProtectedRoute>
+            } 
+          />
+
           <Route 
             path="/relatorios" 
             element={
